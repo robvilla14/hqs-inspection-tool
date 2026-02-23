@@ -1,0 +1,1910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>HQS Inspection</title>
+<style>
+  :root {
+    --navy: #0f1923;
+    --navy2: #1a2733;
+    --steel: #2c3e50;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --red-light: #fee2e2;
+    --green: #22c55e;
+    --green-light: #dcfce7;
+    --gray: #94a3b8;
+    --gray-light: #f1f5f9;
+    --white: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Segoe UI Mono', monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body { font-family: var(--sans); background: var(--gray-light); color: var(--text); min-height: 100vh; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ── DASHBOARD ── */
+  #dashboard { min-height: 100vh; background: var(--navy); }
+
+  .dash-header { padding: 24px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .dash-header h1 { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--amber); margin-bottom: 4px; }
+  .dash-header p { font-size: 11px; color: var(--gray); font-family: var(--mono); }
+  .dash-body { padding: 20px; }
+
+  .btn-new { width: 100%; background: var(--amber); color: var(--navy); border: none; border-radius: 8px; padding: 16px; font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; margin-bottom: 24px; }
+
+  .section-label { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gray); margin-bottom: 10px; }
+
+  .insp-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .insp-card { background: var(--navy2); border-radius: 10px; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.06); }
+  .insp-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .insp-card-addr { font-size: 14px; font-weight: 500; color: var(--white); flex: 1; margin-right: 10px; line-height: 1.3; }
+  .insp-badge { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+  .badge-pass { background: var(--green-light); color: #16a34a; }
+  .badge-fail { background: var(--red-light); color: #dc2626; }
+  .badge-inc { background: #fef9c3; color: #854d0e; }
+  .badge-draft { background: rgba(255,255,255,0.08); color: var(--gray); }
+  .insp-card-meta { font-family: var(--mono); font-size: 11px; color: var(--gray); display: flex; gap: 12px; flex-wrap: wrap; }
+  .insp-card-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .btn-sm { flex: 1; padding: 8px; border-radius: 6px; border: none; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.05em; cursor: pointer; text-transform: uppercase; }
+  .btn-open { background: var(--amber); color: var(--navy); }
+  .btn-print { background: rgba(255,255,255,0.08); color: var(--gray); }
+  .btn-del { background: rgba(239,68,68,0.15); color: #f87171; }
+
+  .empty-state { text-align: center; padding: 48px 20px; }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 13px; color: var(--gray); line-height: 1.6; }
+
+  /* Data management bar */
+  .data-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .btn-data {
+    flex: 1;
+    padding: 11px 8px;
+    border-radius: 8px;
+    border: 1.5px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    color: var(--gray);
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+  }
+  .btn-data:active { background: rgba(255,255,255,0.1); }
+  .btn-data .btn-data-icon { font-size: 18px; }
+  .btn-data.export { border-color: rgba(245,158,11,0.3); color: var(--amber); }
+  .btn-data.import { border-color: rgba(34,197,94,0.3); color: #4ade80; }
+  .btn-data.danger { border-color: rgba(239,68,68,0.2); color: #f87171; }
+
+  .storage-bar {
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .storage-bar-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray); }
+  .storage-bar-track { flex: 1; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
+  .storage-bar-fill { height: 100%; border-radius: 2px; background: var(--amber); transition: width 0.4s; }
+  .storage-bar-fill.warn { background: #f87171; }
+  .storage-bar-pct { font-family: var(--mono); font-size: 10px; color: var(--gray); white-space: nowrap; }
+
+  /* ── FORM ── */
+  #inspection { background: var(--gray-light); min-height: 100vh; padding-bottom: 120px; }
+
+  .form-header { background: var(--navy); padding: 16px 20px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 12px; border-bottom: 2px solid var(--amber); }
+  .btn-back { background: none; border: none; color: var(--amber); font-size: 22px; cursor: pointer; padding: 4px; flex-shrink: 0; }
+  .form-header-text { flex: 1; min-width: 0; }
+  .form-header-text h2 { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--amber); }
+  .form-header-addr { font-size: 13px; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .progress-bar { height: 3px; background: rgba(255,255,255,0.1); }
+  .progress-fill { height: 100%; background: var(--amber); transition: width 0.3s; }
+
+  .form-card { background: var(--white); border-radius: 12px; margin: 12px 12px 0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.07); }
+
+  .card-header { background: var(--navy); padding: 12px 16px; display: flex; align-items: center; gap: 10px; }
+  .card-header h3 { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--amber); flex: 1; }
+
+  .card-sub-header { background: var(--navy2); padding: 7px 14px; }
+  .card-sub-header span { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray); }
+
+  /* INFO GRID */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; }
+  .info-grid .full { grid-column: 1 / -1; }
+  .field { padding: 12px 14px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+  .field:nth-child(even) { border-right: none; }
+  .field.full { border-right: none; }
+  .field label { display: block; font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray); margin-bottom: 5px; }
+  .field input, .field select, .field textarea { width: 100%; border: none; outline: none; font-family: var(--sans); font-size: 14px; color: var(--text); background: transparent; padding: 0; }
+  .field textarea { resize: none; min-height: 48px; }
+  .field select { -webkit-appearance: none; }
+
+  /* TYPE PILLS */
+  .type-pills { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .type-pill { padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); font-size: 12px; font-weight: 500; cursor: pointer; background: none; color: var(--gray); transition: all 0.15s; }
+  .type-pill.active { background: var(--navy); border-color: var(--navy); color: var(--white); }
+
+  /* CHECK ITEMS */
+  .check-item { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .check-item:last-child { border-bottom: none; }
+  .check-item-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+  .check-item-label { flex: 1; font-size: 13px; font-weight: 500; line-height: 1.4; padding-top: 2px; }
+  .check-item-label small { display: block; font-size: 11px; color: var(--gray); font-weight: 400; margin-top: 2px; }
+
+  .result-pills { display: flex; gap: 6px; flex-shrink: 0; }
+  .rpill { width: 44px; height: 30px; border-radius: 6px; border: 1.5px solid var(--border); font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; background: none; color: var(--gray); text-transform: uppercase; transition: all 0.12s; }
+  .rpill.pass.active { background: var(--green); border-color: var(--green); color: white; }
+  .rpill.fail.active { background: var(--red); border-color: var(--red); color: white; }
+  .rpill.na.active { background: var(--steel); border-color: var(--steel); color: white; }
+
+  .check-comment { width: 100%; border: 1.5px solid var(--border); border-radius: 6px; padding: 8px 10px; font-family: var(--sans); font-size: 12px; color: var(--text); resize: none; outline: none; background: var(--gray-light); min-height: 34px; display: block; }
+  .check-comment:focus { border-color: var(--amber); background: white; }
+
+  .check-item.is-fail .check-comment { background: #fff0f0; border-color: #fca5a5; }
+  .check-item.is-fail .check-comment:focus { border-color: var(--red); background: white; }
+
+  /* Type field — shown above the check item for floor/window/stove */
+  .type-field-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px 0;
+    border-bottom: none;
+  }
+  .type-field-row label {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gray);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .type-field-row input {
+    flex: 1;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--text);
+    outline: none;
+    background: var(--gray-light);
+  }
+  .type-field-row input:focus { border-color: var(--amber); background: white; }
+
+  /* DYNAMIC AREA BLOCKS */
+  .area-block { border-bottom: 2px solid var(--border); }
+  .area-block:last-child { border-bottom: none; }
+
+  .area-block-header { background: #1e3a4c; padding: 10px 14px; display: flex; align-items: center; gap: 8px; }
+  .area-block-header .rc-badge { background: var(--amber); color: var(--navy); font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; white-space: nowrap; flex-shrink: 0; }
+  .area-block-header input { background: transparent; border: none; outline: none; color: #94a3b8; font-size: 12px; flex: 1; font-family: var(--sans); }
+  .area-block-header select { background: transparent; border: 1px solid rgba(255,255,255,0.15); outline: none; color: #cbd5e1; font-size: 11px; font-family: var(--mono); border-radius: 4px; padding: 3px 6px; cursor: pointer; -webkit-appearance: none; }
+  .btn-remove-area { background: rgba(239,68,68,0.15); border: none; color: #f87171; font-size: 16px; cursor: pointer; padding: 3px 8px; border-radius: 4px; flex-shrink: 0; }
+
+  .btn-add-area { display: flex; align-items: center; gap: 8px; width: calc(100% - 24px); margin: 10px 12px 0; padding: 12px 16px; background: white; border: 2px dashed var(--border); border-radius: 10px; color: var(--gray); font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+
+  /* SUMMARY */
+  .summary-result { padding: 16px 14px; border-bottom: 1px solid var(--border); }
+  .summary-btns { display: flex; gap: 10px; }
+  .sum-btn { flex: 1; padding: 12px 8px; border-radius: 8px; border: 2px solid var(--border); font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; background: none; color: var(--gray); }
+  .sum-btn.pass.active { background: var(--green-light); border-color: var(--green); color: #16a34a; }
+  .sum-btn.fail.active { background: var(--red-light); border-color: var(--red); color: #dc2626; }
+  .sum-btn.inc.active { background: #fef9c3; border-color: #eab308; color: #854d0e; }
+
+  .fail-count { padding: 10px 14px; background: var(--red-light); display: none; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+  .fail-count.visible { display: flex; }
+  .fail-count-num { font-family: var(--mono); font-size: 24px; font-weight: 600; color: var(--red); }
+  .fail-count-label { font-size: 12px; color: #dc2626; }
+
+  /* SAVE BAR */
+  .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--navy); padding: 12px 16px; display: flex; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); z-index: 200; }
+  .btn-save { flex: 1; background: var(--amber); color: var(--navy); border: none; border-radius: 8px; padding: 14px; font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+  .btn-print-form { background: rgba(255,255,255,0.08); color: var(--white); border: none; border-radius: 8px; padding: 14px; font-family: var(--mono); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+
+  .toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-10px); background: var(--navy); color: var(--amber); font-family: var(--mono); font-size: 12px; font-weight: 600; padding: 10px 20px; border-radius: 8px; opacity: 0; transition: all 0.2s; pointer-events: none; z-index: 999; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── PHOTOS ── */
+  .photo-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px 10px;
+    flex-wrap: wrap;
+  }
+  .photo-thumb-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .photo-thumb {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    display: block;
+  }
+  .photo-thumb-del {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--red);
+    color: white;
+    border: none;
+    font-size: 12px;
+    line-height: 20px;
+    text-align: center;
+    cursor: pointer;
+    padding: 0;
+  }
+  .btn-add-photo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border: 2px dashed var(--border);
+    border-radius: 6px;
+    background: none;
+    color: var(--gray);
+    cursor: pointer;
+    font-size: 22px;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .btn-add-photo span { font-size: 8px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.05em; }
+  .btn-add-photo:active { background: var(--gray-light); }
+  input.photo-input { display: none; }
+
+  /* ── AMENITIES ── */
+  .amenity-toggle {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 13px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gray);
+    border-bottom: 1px solid var(--border);
+  }
+  .amenity-toggle:last-child { border-bottom: none; }
+  .amenity-toggle .toggle-arrow { font-size: 14px; transition: transform 0.2s; }
+  .amenity-toggle.open .toggle-arrow { transform: rotate(90deg); }
+  .amenity-toggle .group-checked-count {
+    background: var(--amber);
+    color: var(--navy);
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    margin-left: 8px;
+  }
+
+  .amenity-group-body { display: none; }
+  .amenity-group-body.open { display: block; }
+
+  .amenity-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .amenity-item:last-child { border-bottom: none; }
+  .amenity-item:active { background: var(--gray-light); }
+
+  .amenity-checkbox {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    border: 2px solid var(--border);
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.12s;
+    font-size: 13px;
+  }
+  .amenity-checkbox.checked {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: white;
+  }
+
+  .amenity-item-label {
+    font-size: 13px;
+    flex: 1;
+    line-height: 1.3;
+  }
+
+  .amenity-other {
+    padding: 8px 14px 12px 48px;
+    border-bottom: 1px solid var(--border);
+  }
+  .amenity-other input {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--text);
+    outline: none;
+    background: var(--gray-light);
+  }
+  .amenity-other input:focus { border-color: var(--amber); background: white; }
+
+  /* ── PRINT ── */
+  @media print {
+    body { background: white; margin: 0; }
+    .screen { display: none !important; }
+    #print-view { display: block !important; }
+  }
+
+  #print-view {
+    display: none;
+    font-family: 'Arial', sans-serif;
+    font-size: 10px;
+    color: #111;
+    padding: 0.5in 0.5in 0.4in;
+    max-width: 8.5in;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .pv-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    border-bottom: 3px solid #0f1923;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+  }
+  .pv-header-left .pv-title {
+    font-size: 17px;
+    font-weight: bold;
+    color: #0f1923;
+    letter-spacing: -0.02em;
+  }
+  .pv-header-left .pv-sub {
+    font-size: 9px;
+    color: #666;
+    margin-top: 2px;
+  }
+  .pv-header-right {
+    text-align: right;
+  }
+  .pv-overall-badge {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 5px 14px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .pv-overall-badge.pass { background: #dcfce7; color: #16a34a; border: 2px solid #16a34a; }
+  .pv-overall-badge.fail { background: #fee2e2; color: #dc2626; border: 2px solid #dc2626; }
+  .pv-overall-badge.inc  { background: #fef9c3; color: #854d0e; border: 2px solid #ca8a04; }
+  .pv-overall-badge.pending { background: #f1f5f9; color: #64748b; border: 2px solid #94a3b8; }
+  .pv-header-right .pv-date { font-size: 9px; color: #666; margin-top: 3px; }
+
+  /* Meta block — two columns */
+  .pv-meta-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .pv-meta-box {
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .pv-meta-box-title {
+    background: #0f1923;
+    color: #f59e0b;
+    font-size: 8px;
+    font-weight: bold;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+  }
+  .pv-meta-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 4px 0;
+  }
+  .pv-meta-row {
+    padding: 2px 8px;
+    font-size: 9.5px;
+    line-height: 1.5;
+  }
+  .pv-meta-row.full { grid-column: 1 / -1; }
+  .pv-meta-row .lbl { font-weight: bold; color: #444; }
+
+  /* Fails summary */
+  .pv-fails-box {
+    border: 2px solid #dc2626;
+    border-radius: 3px;
+    margin-bottom: 10px;
+    page-break-inside: avoid;
+  }
+  .pv-fails-title {
+    background: #dc2626;
+    color: white;
+    padding: 4px 10px;
+    font-size: 10px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .pv-fails-title span { font-size: 9px; opacity: 0.85; font-weight: normal; }
+
+  /* Sections */
+  .pv-section {
+    margin-bottom: 8px;
+    page-break-inside: avoid;
+  }
+  .pv-section-title {
+    background: #1e293b;
+    color: #f59e0b;
+    padding: 4px 8px;
+    font-weight: bold;
+    font-size: 9.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    page-break-after: avoid;
+  }
+
+  /* Tables */
+  .pv-table {
+    width: 100%;
+    border-collapse: collapse;
+    page-break-inside: auto;
+  }
+  .pv-table th {
+    background: #f8fafc;
+    font-size: 8.5px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    padding: 3px 6px;
+    border: 1px solid #d1d5db;
+    text-align: left;
+  }
+  .pv-table td {
+    border: 1px solid #d1d5db;
+    padding: 3px 6px;
+    font-size: 9.5px;
+    vertical-align: top;
+    line-height: 1.4;
+  }
+  .pv-table tr { page-break-inside: avoid; }
+  .pv-table tr.fail-row td { background: #fff5f5; }
+  .pv-table tr.na-row td { color: #94a3b8; }
+  .pv-table tr.na-row td:first-child { font-style: italic; }
+
+  /* Column widths */
+  .pv-col-item    { width: 58%; }
+  .pv-col-result  { width: 9%; text-align: center; }
+  .pv-col-comment { width: 33%; }
+
+  .pv-result { font-weight: bold; font-size: 9px; text-transform: uppercase; }
+  .pv-result.pass { color: #16a34a; }
+  .pv-result.fail { color: #dc2626; }
+  .pv-result.na   { color: #94a3b8; font-weight: normal; font-style: italic; }
+
+  /* Summary / notes */
+  .pv-notes-box {
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    margin-top: 10px;
+    page-break-inside: avoid;
+  }
+  .pv-notes-title {
+    background: #f1f5f9;
+    padding: 3px 8px;
+    font-size: 8.5px;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #475569;
+    border-bottom: 1px solid #ccc;
+  }
+  .pv-notes-body { padding: 6px 8px; font-size: 10px; line-height: 1.6; min-height: 40px; }
+
+  /* Signatures */
+  .pv-sigs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 16px;
+    page-break-inside: avoid;
+  }
+  .pv-sig-line { border-bottom: 1.5px solid #111; margin-top: 28px; margin-bottom: 3px; }
+  .pv-sig-label { font-size: 8.5px; color: #666; }
+
+  /* Footer */
+  .pv-footer {
+    margin-top: 12px;
+    padding-top: 6px;
+    border-top: 1px solid #ccc;
+    display: flex;
+    justify-content: space-between;
+    font-size: 8px;
+    color: #94a3b8;
+  }
+
+  /* Photos in print */
+  .pv-photo-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px;
+  }
+  .pv-photo-item {
+    text-align: center;
+    font-size: 8px;
+    color: #555;
+  }
+  .pv-photo-item img {
+    width: 110px;
+    height: 110px;
+    object-fit: cover;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    display: block;
+    margin-bottom: 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════ DASHBOARD ══════════════════════ -->
+<div class="screen active" id="dashboard">
+  <div class="dash-header">
+    <h1>HQS Inspector</h1>
+    <p>Health &amp; Safety Inspection Tool &nbsp;·&nbsp; Labor Compliance Solutions</p>
+  </div>
+  <div class="dash-body">
+    <button class="btn-new" onclick="newInspection()">+ New Inspection</button>
+
+    <div class="data-bar">
+      <button class="btn-data export" onclick="exportAllJSON()">
+        <span class="btn-data-icon">📤</span>Backup All
+      </button>
+      <button class="btn-data export" onclick="exportSinglePrompt()">
+        <span class="btn-data-icon">💾</span>Export One
+      </button>
+      <button class="btn-data import" onclick="document.getElementById('importFile').click()">
+        <span class="btn-data-icon">📥</span>Import
+      </button>
+      <button class="btn-data danger" onclick="confirmClearAll()">
+        <span class="btn-data-icon">🗑</span>Clear All
+      </button>
+    </div>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
+
+    <div class="storage-bar" id="storageBar">
+      <span class="storage-bar-label">Storage</span>
+      <div class="storage-bar-track"><div class="storage-bar-fill" id="storageFill" style="width:0%"></div></div>
+      <span class="storage-bar-pct" id="storagePct">—</span>
+    </div>
+
+    <div class="section-label">Saved Inspections</div>
+    <div class="insp-list" id="inspList"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ INSPECTION FORM ══════════════════════ -->
+<div class="screen" id="inspection">
+  <div class="form-header">
+    <button class="btn-back" onclick="goBack()">←</button>
+    <div class="form-header-text">
+      <h2>HQS Inspection</h2>
+      <div class="form-header-addr" id="headerAddr">New Inspection</div>
+    </div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <div id="formBody"></div>
+  <div class="save-bar">
+    <button class="btn-save" onclick="saveInspection()">💾 Save</button>
+    <button class="btn-print-form" onclick="printInspection()">🖨 Print / Export</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ PRINT VIEW ══════════════════════ -->
+<div id="print-view"></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  CONSTANTS
+// ════════════════════════════════════════════════════════
+
+const ROOM_CODES = {
+  '1': 'Bedroom / Sleeping Room',
+  '2': 'Dining Room / Dining Area',
+  '3': 'Second Living Room / Family Room / Den / Playroom / TV Room',
+  '4': 'Entrance Hall / Corridor / Hall / Staircase',
+  '5': 'Additional Bathroom',
+  '6': 'Other'
+};
+
+// Standard items for bedrooms and living areas
+const ROOM_ITEMS = [
+  { id: 'electrical',  label: 'Electrical — outlets functional, no hazards',        hint: 'No exposed wiring, cover plates present, no overloading' },
+  { id: 'lighting',    label: 'Lighting — adequate and functional',                  hint: 'Ceiling/wall fixture or switched outlet operational' },
+  { id: 'switches',    label: 'Switches — functional, cover plates present',         hint: null },
+  { id: 'window',      label: 'Window condition — operable, locks functional',       hint: 'Opens, closes, and latches; no broken glass', typeField: 'Window Type', typePlaceholder: 'e.g. Vinyl, Wood, Aluminum, Single/Double pane' },
+  { id: 'ceiling',     label: 'Ceiling condition',                                   hint: 'No significant damage, staining, or peeling paint' },
+  { id: 'floor',       label: 'Floor condition — no trip hazards',                   hint: 'Secure flooring, no major damage or deterioration', typeField: 'Flooring Type', typePlaceholder: 'e.g. Carpet, Hardwood, Vinyl, Tile, Laminate' },
+  { id: 'smoke',       label: 'Smoke detector — present and functional',             hint: 'Test audible alarm; required within 10 ft of sleeping room' },
+  { id: 'co',          label: 'Carbon monoxide detector — present and functional',   hint: 'Required if gas appliances or attached garage present' },
+];
+
+// Kitchen items — no smoke/CO, add GFCI
+const KITCHEN_ITEMS = [
+  { id: 'electrical',  label: 'Electrical — outlets functional, no hazards',        hint: 'No exposed wiring, cover plates present' },
+  { id: 'gfci',        label: 'GFCI — present and functional',                      hint: 'Test with GFCI tester; all outlets within 6 ft of sink' },
+  { id: 'lighting',    label: 'Lighting — adequate and functional',                  hint: null },
+  { id: 'switches',    label: 'Switches — functional, cover plates present',         hint: null },
+  { id: 'window',      label: 'Window condition',                                    hint: 'Opens, closes, and latches; no broken glass', typeField: 'Window Type', typePlaceholder: 'e.g. Vinyl, Wood, Aluminum, Single/Double pane' },
+  { id: 'ceiling',     label: 'Ceiling condition',                                   hint: 'No significant damage, staining, or peeling paint' },
+  { id: 'floor',       label: 'Floor condition',                                     hint: 'Secure flooring, no major damage', typeField: 'Flooring Type', typePlaceholder: 'e.g. Linoleum, Vinyl, Tile, Hardwood' },
+  { id: 'stove',       label: 'Stove / Range / Oven — all burners functional',      hint: 'Gas ignition or electric elements operational', typeField: 'Range Type', typePlaceholder: 'e.g. Gas, Electric, Glass-top, Coil' },
+  { id: 'fridge',      label: 'Refrigerator — functional and maintaining temp',      hint: null },
+  { id: 'sink',        label: 'Sink — hot and cold water, drains properly',          hint: null },
+  { id: 'storage',     label: 'Adequate food storage space',                         hint: 'Cabinets, pantry, or shelving present' },
+  { id: 'pest',        label: 'No evidence of pest infestation',                     hint: 'Droppings, gnaw marks, nests under sink or in cabinets' },
+];
+
+// Bathroom items — no smoke/CO, add GFCI
+const BATH_ITEMS = [
+  { id: 'electrical',  label: 'Electrical — outlets functional, no hazards',        hint: 'Cover plates present, no hazards' },
+  { id: 'gfci',        label: 'GFCI — present and functional',                      hint: 'All bathroom outlets require GFCI protection' },
+  { id: 'lighting',    label: 'Lighting — adequate and functional',                  hint: null },
+  { id: 'switches',    label: 'Switches — functional, cover plates present',         hint: null },
+  { id: 'window',      label: 'Window condition (if present)',                       hint: null, typeField: 'Window Type', typePlaceholder: 'e.g. Vinyl, Wood, Frosted, N/A' },
+  { id: 'ceiling',     label: 'Ceiling condition',                                   hint: 'No significant moisture damage, peeling paint, or mold' },
+  { id: 'floor',       label: 'Floor condition',                                     hint: 'Secure tile or flooring, no water damage', typeField: 'Flooring Type', typePlaceholder: 'e.g. Ceramic Tile, Vinyl, Linoleum' },
+  { id: 'toilet',      label: 'Toilet — present and functional',                     hint: 'Flushes, no leaks at base or supply line' },
+  { id: 'sink',        label: 'Sink — hot and cold water, drains properly',          hint: null },
+  { id: 'tub_shower',  label: 'Tub or shower — functional',                         hint: 'No significant leaks; caulk/grout in acceptable condition' },
+  { id: 'ventilation', label: 'Ventilation — window or exhaust fan present',         hint: 'Required to prevent moisture buildup' },
+];
+
+// Building-wide checklist sections
+const BUILDING_CHECKLIST = [
+  // ── SECTION 6: Building Exterior
+  {
+    id: 'exterior',
+    title: 'Section 6 — Building Exterior',
+    icon: '🏠',
+    items: [
+      { id: 'foundation',        label: 'Foundation — no significant cracking or deterioration',   hint: 'Major structural cracks, settling, water intrusion, or bowing walls' },
+      { id: 'stairs_rails_ext',  label: 'Exterior stairs, rails, and porches in safe condition',   hint: 'Structurally sound, no rot or instability; handrails secure; guardrails on open sides ≥30" off grade' },
+      { id: 'roof',              label: 'Roof in acceptable condition',                            hint: 'No missing/damaged shingles, visible sagging, or active leaks' },
+      { id: 'gutters',           label: 'Gutters and downspouts functional',                       hint: 'Secured, draining away from foundation, no major damage' },
+      { id: 'ext_surfaces',      label: 'Exterior wall surfaces in acceptable condition',          hint: 'Siding, stucco, brick — no major deterioration, rot, or moisture damage' },
+      { id: 'chimney',           label: 'Chimney in acceptable condition',                         hint: 'No missing mortar, cracks, or deteriorated cap; mark N/A if no chimney' },
+      { id: 'windows_ext',       label: 'Exterior windows and doors — no significant damage',      hint: 'Frames intact, no broken glass, weatherstripping present' },
+      { id: 'grading_drainage',  label: 'Site grading directs water away from building',          hint: 'No pooling at foundation; downspouts extended away from structure' },
+      { id: 'walkways',          label: 'Walkways, driveways, and common paths safe condition',   hint: 'No significant cracks, heaving, or trip hazards on access paths' },
+      { id: 'ext_lighting',      label: 'Adequate exterior lighting at entries',                   hint: 'Main entry and building access points have functional lighting' },
+      { id: 'lead_ext',          label: 'No deteriorated paint on exterior surfaces (pre-1978)',   hint: 'Mark N/A if built 1978 or later; peeling/chipping paint is a hazard' },
+      { id: 'manuf_tiedowns',    label: 'Manufactured home — tie-downs in place and secure',      hint: 'Mark N/A if not a manufactured home' },
+    ]
+  },
+
+  // ── SECTION 7: Heating and Plumbing
+  {
+    id: 'plumbing_heating',
+    title: 'Section 7 — Heating & Plumbing',
+    icon: '🔧',
+    items: [
+      { id: 'heat_adequate',     label: 'Heating system adequate and operational',                 hint: 'Capable of maintaining minimum 68°F in all habitable rooms' },
+      { id: 'heat_safe',         label: 'Heating equipment safe — no hazards',                    hint: 'No cracked heat exchanger, improper venting, carbon buildup, or gas odor' },
+      { id: 'heat_venting',      label: 'Heating/combustion equipment vented properly',            hint: 'Flue pipes intact, joints sealed, no back-drafting, termination cap present' },
+      { id: 'cooling',           label: 'Ventilation and cooling adequate',                        hint: 'Windows operable for ventilation; A/C functional if provided as a unit amenity' },
+      { id: 'water_heater',      label: 'Water heater in safe and acceptable condition',           hint: 'T&P relief valve present and piped to drain; no corrosion, leaks, or improper venting' },
+      { id: 'water_supply',      label: 'Water supply approvable — safe and adequate',            hint: 'Connected to approved public supply or certified private well' },
+      { id: 'hot_cold',          label: 'Hot and cold running water at all fixtures',              hint: 'Test all sinks, tubs, and showers for both hot and cold' },
+      { id: 'no_leaks',          label: 'No active plumbing leaks',                               hint: 'Check under all sinks, around toilets, supply lines, and exposed drain lines' },
+      { id: 'water_pressure',    label: 'Water pressure adequate at all fixtures',                 hint: 'No significant pressure drops; no banging pipes' },
+      { id: 'sewer',             label: 'Sewer/drainage functional — no backups or odors',        hint: 'Drains freely; no sewage odor indicating trap failure or sewer gas' },
+      { id: 'sprinkler_unit',    label: 'Fire sprinkler system — unit: present and no damage',    hint: 'Heads unobstructed, no missing heads, no visible corrosion or painted-over heads; mark N/A if not installed' },
+      { id: 'sprinkler_bldg',    label: 'Fire sprinkler system — building: operational, no deficiencies', hint: 'Riser room accessible, control valve open, no visible damage to mains or branches; mark N/A if not installed' },
+    ]
+  },
+
+  // ── SECTION 8: General Health & Safety
+  {
+    id: 'health_safety',
+    title: 'Section 8 — General Health & Safety',
+    icon: '🛡',
+    items: [
+      { id: 'access_unit',       label: 'Unit accessible — entry door functional and secure',     hint: 'Locks operational; door opens, closes, and latches properly' },
+      { id: 'fire_exits',        label: 'Fire exits present, accessible, and unobstructed',       hint: 'All required exits clear; exit signage visible in multi-unit buildings' },
+      { id: 'egress_windows',    label: 'Bedroom egress windows meet minimum requirements',       hint: 'Min 5.7 sq ft opening, 24" min height, 20" min width, 44" max sill height' },
+      { id: 'infestation',       label: 'No evidence of pest, roach, or rodent infestation',     hint: 'Droppings, gnaw marks, nests, or live/dead pests observed' },
+      { id: 'garbage',           label: 'No garbage or hazardous debris inside unit',            hint: null },
+      { id: 'refuse_disposal',   label: 'Refuse disposal facilities adequate',                   hint: 'Trash receptacles or dumpster available and in usable condition' },
+      { id: 'int_stairs_halls',  label: 'Interior stairs and common halls safe condition',       hint: 'Handrails present and secure; adequate lighting; no obstructions' },
+      { id: 'int_hazards',       label: 'No other interior hazards present',                    hint: 'Protruding objects, unstable fixtures, broken glass, exposed sharp edges' },
+      { id: 'elevators',         label: 'Elevators operational and safe',                        hint: 'Current inspection certificate posted; mark N/A if no elevator' },
+      { id: 'air_quality',       label: 'No apparent interior air quality concerns',             hint: 'No visible mold growth, strong chemical odors, or excessive moisture' },
+      { id: 'mold_moisture',     label: 'No evidence of mold or chronic moisture intrusion',    hint: 'Check bathrooms, under sinks, basement, around windows; staining is a red flag' },
+      { id: 'site_neighborhood', label: 'Site and neighborhood conditions acceptable',           hint: 'No conditions immediately adjacent that threaten health/safety of occupants' },
+      { id: 'lead_interior',     label: 'No deteriorated paint on interior surfaces (pre-1978)', hint: 'Mark N/A if built 1978 or later; chipping/peeling paint in units with children under 6 is critical' },
+      { id: 'lead_cert',         label: 'Lead-based paint owner certification current',          hint: 'Required if any lead hazard corrections were made; mark N/A if not applicable' },
+    ]
+  },
+
+  // ── Egress & Fire Safety (kept as standalone for field flow)
+  {
+    id: 'egress',
+    title: 'Egress & Fire Safety (Quick Reference)',
+    icon: '🚪',
+    items: [
+      { id: 'exits_clear',       label: 'All exits accessible and unobstructed',                  hint: 'Exterior doors open/close freely, pathways clear' },
+      { id: 'stairs_rails_int',  label: 'Interior stairs and handrails in safe condition',        hint: 'Secure, no missing balusters; guardrails on open sides ≥30" off floor' },
+      { id: 'fire_hazards',      label: 'No obvious fire hazards present',                       hint: 'Combustibles near heat sources, blocked exits, improperly stored flammables' },
+      { id: 'fire_ext',          label: 'Fire extinguisher present if required',                  hint: 'Mark N/A for single-family; check local requirements for multi-unit' },
+    ]
+  },
+];
+
+// ── SECTION C: Special Amenities (HUD-52580 Section C / D)
+const AMENITIES = [
+  {
+    id: 'living_room',
+    title: 'Living Room',
+    icon: '🛋',
+    items: [
+      { id: 'quality_floors',   label: 'High quality floors or wall coverings' },
+      { id: 'fireplace',        label: 'Working fireplace or stove' },
+      { id: 'balcony',          label: 'Balcony, patio, deck, or porch' },
+      { id: 'special_windows',  label: 'Special windows or doors' },
+      { id: 'exc_size',         label: 'Exceptional size relative to needs of family' },
+    ]
+  },
+  {
+    id: 'kitchen',
+    title: 'Kitchen',
+    icon: '🍳',
+    items: [
+      { id: 'dishwasher',       label: 'Dishwasher' },
+      { id: 'sep_freezer',      label: 'Separate freezer' },
+      { id: 'garbage_disp',     label: 'Garbage disposal' },
+      { id: 'breakfast_nook',   label: 'Eating counter / breakfast nook' },
+      { id: 'pantry',           label: 'Pantry or abundant shelving/cabinets' },
+      { id: 'double_oven',      label: 'Double oven / self-cleaning oven / microwave' },
+      { id: 'double_sink',      label: 'Double sink' },
+      { id: 'quality_cabinets', label: 'High quality cabinets' },
+      { id: 'countertop',       label: 'Abundant counter-top space' },
+      { id: 'modern_appliance', label: 'Modern appliances' },
+      { id: 'exc_size',         label: 'Exceptional size relative to needs of family' },
+    ]
+  },
+  {
+    id: 'other_rooms',
+    title: 'Other Rooms Used for Living',
+    icon: '🛏',
+    items: [
+      { id: 'quality_floors',   label: 'High quality floors or wall coverings' },
+      { id: 'fireplace',        label: 'Working fireplace or stove' },
+      { id: 'balcony',          label: 'Balcony, patio, deck, or porch' },
+      { id: 'special_windows',  label: 'Special windows or doors' },
+      { id: 'exc_size',         label: 'Exceptional size relative to needs of family' },
+    ]
+  },
+  {
+    id: 'bath',
+    title: 'Bath',
+    icon: '🚿',
+    items: [
+      { id: 'special_shower',   label: 'Special feature shower head' },
+      { id: 'heat_lamp',        label: 'Built-in heat lamp' },
+      { id: 'large_mirrors',    label: 'Large mirrors' },
+      { id: 'glass_door',       label: 'Glass door on shower/tub' },
+      { id: 'dressing_room',    label: 'Separate dressing room' },
+      { id: 'double_sink',      label: 'Double sink or special lavatory' },
+      { id: 'exc_size',         label: 'Exceptional size relative to needs of family' },
+    ]
+  },
+  {
+    id: 'overall',
+    title: 'Overall Characteristics',
+    icon: '🏠',
+    items: [
+      { id: 'storm_windows',    label: 'Storm windows and doors' },
+      { id: 'weatherization',   label: 'Other weatherization (insulation, weather stripping)' },
+      { id: 'screen_doors',     label: 'Screen doors or windows' },
+      { id: 'grounds',          label: 'Good upkeep of grounds / landscaping' },
+      { id: 'garage',           label: 'Garage or parking facilities' },
+      { id: 'driveway',         label: 'Driveway' },
+      { id: 'large_yard',       label: 'Large yard' },
+      { id: 'ext_maintenance',  label: 'Good maintenance of building exterior' },
+    ]
+  },
+  {
+    id: 'accessibility',
+    title: 'Accessibility for Individuals with Disabilities',
+    icon: '♿',
+    items: [
+      { id: 'accessible',       label: 'Unit is accessible to a particular disability' },
+      { id: 'wide_doors',       label: 'Wide doorways (32"+ clear)' },
+      { id: 'no_steps',         label: 'No-step entry' },
+      { id: 'roll_in_shower',   label: 'Roll-in shower or accessible tub' },
+      { id: 'grab_bars',        label: 'Grab bars in bathroom' },
+      { id: 'lowered_counters', label: 'Lowered counters or accessible kitchen features' },
+    ]
+  },
+];
+
+// ════════════════════════════════════════════════════════
+//  STATE & STORAGE
+// ════════════════════════════════════════════════════════
+let currentInspection = null;
+
+function blankInspection() {
+  return {
+    id: Date.now().toString(),
+    created: new Date().toISOString(),
+    updated: new Date().toISOString(),
+    info: {
+      address: '', city: '', tenant: '', tenantId: '',
+      inspector: '', pha: '', dateInspection: '', dateRequest: '',
+      typeInspection: 'Initial', yearBuilt: '', bedrooms: '', children: '',
+      housingType: '',
+    },
+    owner: {
+      companyName: '', contactName: '', phone: '', email: '', address: '',
+    },
+    checks: {},
+    rooms: [],       // { name, code }
+    baths: [],       // { name }
+    amenities: {},   // { groupId_itemId: true, groupId_other: 'text' }
+    summary: { result: '', notes: '' },
+  };
+}
+
+function getAll() { try { return JSON.parse(localStorage.getItem('hqs_v2') || '[]'); } catch { return []; } }
+function saveAll(list) { localStorage.setItem('hqs_v2', JSON.stringify(list)); }
+
+function saveInspectionToStore(insp) {
+  const list = getAll();
+  const idx = list.findIndex(i => i.id === insp.id);
+  insp.updated = new Date().toISOString();
+  if (idx >= 0) list[idx] = insp; else list.unshift(insp);
+  saveAll(list);
+}
+
+function deleteInspection(id) { saveAll(getAll().filter(i => i.id !== id)); }
+
+// ════════════════════════════════════════════════════════
+//  DASHBOARD
+// ════════════════════════════════════════════════════════
+function showDashboard() {
+  document.getElementById('dashboard').classList.add('active');
+  document.getElementById('inspection').classList.remove('active');
+  renderDashboard();
+}
+
+function renderDashboard() {
+  const list = getAll();
+  const el = document.getElementById('inspList');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>No inspections yet.<br>Tap "+ New Inspection" to begin.</p></div>`;
+  } else {
+    el.innerHTML = list.map(insp => {
+      const addr = [insp.info.address, insp.info.city].filter(Boolean).join(', ') || 'No address';
+      const date = insp.info.dateInspection || fmtDate(insp.created);
+      const fails = countFails(insp);
+      const badge = insp.summary.result === 'Pass' ? 'badge-pass" >PASS'
+                  : insp.summary.result === 'Fail' ? 'badge-fail" >FAIL'
+                  : insp.summary.result === 'Inconclusive' ? 'badge-inc" >INCONCL.'
+                  : 'badge-draft" >DRAFT';
+      return `<div class="insp-card">
+        <div class="insp-card-top">
+          <div class="insp-card-addr">${addr}</div>
+          <span class="insp-badge ${badge}</span>
+        </div>
+        <div class="insp-card-meta">
+          <span>${date}</span>
+          <span>${insp.info.typeInspection||'Initial'}</span>
+          ${fails > 0 ? `<span style="color:#f87171">${fails} fail${fails>1?'s':''}</span>` : ''}
+        </div>
+        <div class="insp-card-actions">
+          <button class="btn-sm btn-open" onclick="openInspection('${insp.id}')">Open</button>
+          <button class="btn-sm btn-print" onclick="printFromDash('${insp.id}')">Print</button>
+          <button class="btn-sm btn-del" onclick="confirmDelete('${insp.id}')">Delete</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  updateStorageMeter();
+}
+
+// ════════════════════════════════════════════════════════
+//  STORAGE METER
+// ════════════════════════════════════════════════════════
+function updateStorageMeter() {
+  try {
+    const raw = localStorage.getItem('hqs_v2') || '[]';
+    const usedBytes = new Blob([raw]).size;
+    const QUOTA = 5 * 1024 * 1024; // 5MB conservative estimate for localStorage
+    const pct = Math.min(100, Math.round(usedBytes / QUOTA * 100));
+    const fill = document.getElementById('storageFill');
+    const label = document.getElementById('storagePct');
+    if (fill) {
+      fill.style.width = pct + '%';
+      fill.classList.toggle('warn', pct > 75);
+    }
+    if (label) {
+      const kb = Math.round(usedBytes / 1024);
+      const count = getAll().length;
+      label.textContent = `${kb} KB · ${count} inspection${count !== 1 ? 's' : ''} · ${pct}% full`;
+    }
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════════════════════
+//  EXPORT / IMPORT / CLEAR
+// ════════════════════════════════════════════════════════
+function exportAllJSON() {
+  const list = getAll();
+  if (!list.length) { showToast('No inspections to export'); return; }
+  const date = new Date().toISOString().slice(0,10);
+  downloadJSON(list, `HQS_Backup_${date}.json`);
+  showToast(`Exported ${list.length} inspection${list.length !== 1 ? 's' : ''} ✓`);
+}
+
+function exportSinglePrompt() {
+  const list = getAll();
+  if (!list.length) { showToast('No inspections saved'); return; }
+  // Build a quick picker modal
+  const opts = list.map((insp, i) => {
+    const addr = [insp.info.address, insp.info.city].filter(Boolean).join(', ') || 'No address';
+    const date = insp.info.dateInspection || fmtDate(insp.created);
+    return `<button onclick="exportOne('${insp.id}')" style="width:100%;text-align:left;padding:12px 14px;background:none;border:none;border-bottom:1px solid #e2e8f0;cursor:pointer;font-size:13px;font-family:inherit">
+      <strong>${addr}</strong><br>
+      <span style="font-size:11px;color:#64748b">${date} · ${insp.info.typeInspection||'Initial'} · ${insp.summary.result||'Draft'}</span>
+    </button>`;
+  }).join('');
+  showModal('Export Single Inspection', opts);
+}
+
+function exportOne(id) {
+  const insp = getAll().find(i => i.id === id);
+  if (!insp) return;
+  const addr = (insp.info.address || 'Inspection').replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
+  const date = (insp.info.dateInspection || new Date().toISOString().slice(0,10));
+  downloadJSON(insp, `HQS_${addr}_${date}.json`);
+  closeModal();
+  showToast('Exported ✓');
+}
+
+function downloadJSON(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importJSON(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      const list = getAll();
+      // Handle both single inspection and array backup
+      const incoming = Array.isArray(data) ? data : [data];
+      let added = 0, skipped = 0;
+      incoming.forEach(insp => {
+        if (!insp.id || !insp.info) { skipped++; return; }
+        // Ensure amenities field exists for older exports
+        if (!insp.amenities) insp.amenities = {};
+        const exists = list.findIndex(i => i.id === insp.id);
+        if (exists >= 0) {
+          // Ask before overwriting — note the id and prompt
+          if (confirm(`"${[insp.info.address, insp.info.city].filter(Boolean).join(', ') || 'Unnamed'}" already exists. Overwrite with imported version?`)) {
+            list[exists] = insp;
+            added++;
+          } else {
+            skipped++;
+          }
+        } else {
+          list.unshift(insp);
+          added++;
+        }
+      });
+      saveAll(list);
+      renderDashboard();
+      showToast(`Imported ${added} inspection${added !== 1 ? 's' : ''}${skipped ? ` · ${skipped} skipped` : ''} ✓`);
+    } catch(err) {
+      alert('Import failed — file may be corrupted or not a valid HQS backup.\n\n' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+function confirmClearAll() {
+  const list = getAll();
+  if (!list.length) { showToast('Nothing to clear'); return; }
+  if (confirm(`⚠️ Delete ALL ${list.length} saved inspection${list.length !== 1 ? 's' : ''}?\n\nThis cannot be undone. Export a backup first if needed.`)) {
+    saveAll([]);
+    renderDashboard();
+    showToast('All inspections cleared');
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  SIMPLE MODAL (for single-export picker)
+// ════════════════════════════════════════════════════════
+function showModal(title, bodyHTML) {
+  let m = document.getElementById('appModal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'appModal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:flex-end;padding:0';
+    document.body.appendChild(m);
+  }
+  m.innerHTML = `
+    <div style="background:white;width:100%;border-radius:16px 16px 0 0;max-height:80vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #e2e8f0">
+        <span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#0f1923">${title}</span>
+        <button onclick="closeModal()" style="background:none;border:none;font-size:22px;color:#94a3b8;cursor:pointer;padding:0 4px">✕</button>
+      </div>
+      ${bodyHTML}
+    </div>`;
+  m.style.display = 'flex';
+  m.onclick = function(e) { if (e.target === m) closeModal(); };
+}
+
+function closeModal() {
+  const m = document.getElementById('appModal');
+  if (m) m.style.display = 'none';
+}
+
+function confirmDelete(id) {
+  if (confirm('Delete this inspection? Cannot be undone.')) { deleteInspection(id); renderDashboard(); }
+}
+
+function countFails(insp) {
+  return Object.values(insp.checks || {}).filter(v => v.result === 'Fail').length;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()}`;
+}
+
+// ════════════════════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════════════════════
+function newInspection() { currentInspection = blankInspection(); showInspection(); }
+
+function openInspection(id) {
+  currentInspection = getAll().find(i => i.id === id);
+  if (currentInspection) showInspection();
+}
+
+function showInspection() {
+  document.getElementById('dashboard').classList.remove('active');
+  document.getElementById('inspection').classList.add('active');
+  renderForm();
+}
+
+function goBack() {
+  if (confirm('Save before leaving?')) saveInspection();
+  showDashboard();
+}
+
+// ════════════════════════════════════════════════════════
+//  FORM RENDERING
+// ════════════════════════════════════════════════════════
+function renderForm() {
+  const ci = currentInspection;
+  let html = '';
+
+  // ── PROPERTY INFO
+  html += `<div class="form-card">
+    <div class="card-header"><h3>📍 Property &amp; Inspection Info</h3></div>
+    <div class="info-grid">
+      <div class="field full"><label>Property Address</label><input type="text" value="${esc(ci.info.address)}" oninput="ci.info.address=this.value;updateHeader()" placeholder="Street address"></div>
+      <div class="field full"><label>City / State / ZIP</label><input type="text" value="${esc(ci.info.city)}" oninput="ci.info.city=this.value;updateHeader()" placeholder="City, State ZIP"></div>
+      <div class="field"><label>Tenant Name</label><input type="text" value="${esc(ci.info.tenant)}" oninput="ci.info.tenant=this.value" placeholder=""></div>
+      <div class="field"><label>Tenant ID #</label><input type="text" value="${esc(ci.info.tenantId)}" oninput="ci.info.tenantId=this.value" placeholder=""></div>
+      <div class="field"><label>Inspector</label><input type="text" value="${esc(ci.info.inspector)}" oninput="ci.info.inspector=this.value" placeholder=""></div>
+      <div class="field"><label>PHA</label><input type="text" value="${esc(ci.info.pha)}" oninput="ci.info.pha=this.value" placeholder=""></div>
+      <div class="field"><label>Date of Inspection</label><input type="date" value="${esc(ci.info.dateInspection)}" oninput="ci.info.dateInspection=this.value"></div>
+      <div class="field"><label>Date of Request</label><input type="date" value="${esc(ci.info.dateRequest)}" oninput="ci.info.dateRequest=this.value"></div>
+      <div class="field"><label>Year Built</label><input type="text" value="${esc(ci.info.yearBuilt)}" oninput="ci.info.yearBuilt=this.value" placeholder="e.g. 1985"></div>
+      <div class="field"><label>Bedrooms</label><input type="number" value="${esc(ci.info.bedrooms)}" oninput="ci.info.bedrooms=this.value" placeholder="#"></div>
+      <div class="field"><label>Children Under 6</label><input type="number" value="${esc(ci.info.children)}" oninput="ci.info.children=this.value" placeholder="0"></div>
+    </div>
+    <div style="padding:12px 14px;border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--gray);margin-bottom:10px">Housing Type</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        ${['Single Family Detached','Duplex or Two Family','Row House / Town House','Low Rise (3–4 Stories)','High Rise (5+ Stories)','Manufactured Home','Congregate','Cooperative','Independent Group Residence','Single Room Occupancy','Shared Housing','Other'].map(t => {
+          const active = ci.info.housingType === t;
+          return `<button class="type-pill${active?' active':''}" style="text-align:left;padding:7px 12px;font-size:11px;border-radius:6px" onclick="setHousingType('${t}')">${t}</button>`;
+        }).join('')}
+      </div>
+    </div>
+    <div class="type-pills">
+      ${['Initial','Special','Reinspection'].map(t => `<button class="type-pill insp-type-pill${ci.info.typeInspection===t?' active':''}" onclick="setType('${t}')">${t}</button>`).join('')}
+    </div>
+  </div>`;
+
+  // ── OWNER / PROPERTY MANAGEMENT
+  html += `<div class="form-card">
+    <div class="card-header"><h3>🏢 Owner / Property Management</h3></div>
+    <div class="info-grid">
+      <div class="field full"><label>Company / Organization Name</label><input type="text" value="${esc(ci.owner.companyName)}" oninput="ci.owner.companyName=this.value" placeholder="Property management company or owner name"></div>
+      <div class="field"><label>Contact Name</label><input type="text" value="${esc(ci.owner.contactName)}" oninput="ci.owner.contactName=this.value" placeholder="Agent or owner"></div>
+      <div class="field"><label>Phone</label><input type="tel" value="${esc(ci.owner.phone)}" oninput="ci.owner.phone=this.value" placeholder=""></div>
+      <div class="field full"><label>Email</label><input type="email" value="${esc(ci.owner.email)}" oninput="ci.owner.email=this.value" placeholder=""></div>
+      <div class="field full"><label>Mailing Address</label><input type="text" value="${esc(ci.owner.address)}" oninput="ci.owner.address=this.value" placeholder="Street, City, State ZIP"></div>
+    </div>
+  </div>`;
+
+  // ── LIVING ROOM (fixed)
+  html += renderAreaCard('living_room', '🛋 Living Room', ROOM_ITEMS, ci);
+
+  // ── KITCHEN (fixed)
+  html += renderAreaCard('kitchen', '🍳 Kitchen', KITCHEN_ITEMS, ci);
+
+  // ── DYNAMIC BATHROOMS
+  html += `<div class="form-card" style="margin-top:12px">
+    <div class="card-header"><h3>🚿 Bathrooms</h3></div>
+    <div id="bathsContainer">${ci.baths.map((b,i) => renderBathBlock(b,i,ci)).join('')}</div>
+  </div>
+  <button class="btn-add-area" onclick="addBath()">+ Add Bathroom</button>`;
+
+  // ── DYNAMIC OTHER ROOMS (with room codes) — after bathrooms
+  html += `<div class="form-card" style="margin-top:12px">
+    <div class="card-header"><h3>🚪 Other Rooms &amp; Areas</h3><span style="font-size:10px;color:var(--gray);font-family:var(--mono)">Hallways, dining, patio, etc.</span></div>
+    <div style="padding:10px 14px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:11px;color:#64748b;line-height:1.7">
+      <strong style="font-family:var(--mono);font-size:10px">ROOM CODES:</strong><br>
+      1 = Bedroom/Sleeping Room &nbsp;|&nbsp; 2 = Dining Room/Area &nbsp;|&nbsp; 3 = Family Room/Den/Playroom<br>
+      4 = Entrance/Hall/Staircase &nbsp;|&nbsp; 5 = Additional Bathroom &nbsp;|&nbsp; 6 = Other
+    </div>
+    <div id="roomsContainer">${ci.rooms.map((r,i) => renderRoomBlock(r,i,ci)).join('')}</div>
+  </div>
+  <button class="btn-add-area" onclick="addRoom()">+ Add Other Room / Area</button>`;
+
+  // ── BUILDING-WIDE SECTIONS
+  BUILDING_CHECKLIST.forEach(section => { html += renderBuildingSection(section, ci); });
+
+  // ── SECTION C: SPECIAL AMENITIES
+  html += renderAmenitiesSection(ci);
+
+  // ── SUMMARY
+  const fc = countFails(ci);
+  html += `<div class="form-card" style="margin-top:12px">
+    <div class="card-header"><h3>📊 Summary &amp; Decision</h3></div>
+    <div class="fail-count${fc>0?' visible':''}" id="failCount">
+      <div class="fail-count-num">${fc}</div>
+      <div class="fail-count-label">Failed item${fc!==1?'s':''} — review before completing</div>
+    </div>
+    <div class="summary-result">
+      <div style="font-size:11px;font-weight:600;font-family:var(--mono);color:#64748b;margin-bottom:10px;letter-spacing:0.08em">OVERALL RESULT</div>
+      <div class="summary-btns">
+        <button class="sum-btn pass${ci.summary.result==='Pass'?' active':''}" onclick="setSummary('Pass')">✓ Pass</button>
+        <button class="sum-btn fail${ci.summary.result==='Fail'?' active':''}" onclick="setSummary('Fail')">✗ Fail</button>
+        <button class="sum-btn inc${ci.summary.result==='Inconclusive'?' active':''}" onclick="setSummary('Inconclusive')">? Inconcl.</button>
+      </div>
+    </div>
+    <div class="check-item">
+      <div style="font-size:11px;font-weight:600;font-family:var(--mono);color:#64748b;margin-bottom:8px;letter-spacing:0.08em">INSPECTOR NOTES</div>
+      <textarea class="check-comment visible" style="display:block" rows="5" placeholder="Summary notes, tenant questions, conditions observed…" oninput="ci.summary.notes=this.value">${esc(ci.summary.notes)}</textarea>
+    </div>
+  </div>`;
+
+  document.getElementById('formBody').innerHTML = html;
+  updateHeader();
+  updateProgress();
+}
+
+function renderAreaCard(prefix, title, items, ci) {
+  const itemsHtml = items.map(item => renderCheckItem(prefix + '_' + item.id, item, ci)).join('');
+  return `<div class="form-card" style="margin-top:12px">
+    <div class="card-header"><h3>${title}</h3></div>
+    ${itemsHtml}
+  </div>`;
+}
+
+function renderBuildingSection(section, ci) {
+  const items = section.items.map(item => renderCheckItem(section.id + '_' + item.id, item, ci)).join('');
+  return `<div class="form-card" style="margin-top:12px">
+    <div class="card-header"><h3>${section.icon} ${section.title}</h3></div>
+    ${items}
+  </div>`;
+}
+
+function renderCheckItem(key, item, ci) {
+  const check = ci.checks[key] || {};
+  const result = check.result || '';
+  const comment = check.comment || '';
+  const typeVal = check.typeVal || '';
+  const photos = check.photos || [];
+  const isFail = result === 'Fail';
+  const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+  const typeFieldHtml = item.typeField ? `
+    <div class="type-field-row">
+      <label>${item.typeField}</label>
+      <input type="text" value="${esc(typeVal)}" placeholder="${esc(item.typePlaceholder||'')}" oninput="setTypeVal('${key}',this.value)">
+    </div>` : '';
+
+  const thumbsHtml = photos.map((src, pi) =>
+    `<div class="photo-thumb-wrap">
+      <img class="photo-thumb" src="${src}" alt="photo">
+      <button class="photo-thumb-del" onclick="removePhoto('${key}',${pi})" title="Remove">✕</button>
+    </div>`
+  ).join('');
+
+  const photoRowHtml = `
+    <div class="photo-row" id="photorow_${safeKey}">
+      ${thumbsHtml}
+      <button class="btn-add-photo" onclick="document.getElementById('photoinput_${safeKey}').click()">
+        📷<span>Photo</span>
+      </button>
+      <input class="photo-input" type="file" id="photoinput_${safeKey}" accept="image/*" capture="environment" onchange="addPhoto('${key}',this)">
+    </div>`;
+
+  return `<div class="check-item${isFail?' is-fail':''}" id="ci_${safeKey}">
+    ${typeFieldHtml}
+    <div class="check-item-top">
+      <div class="check-item-label">${item.label}${item.hint?`<small>${item.hint}</small>`:''}</div>
+      <div class="result-pills">
+        <button class="rpill pass${result==='Pass'?' active':''}" onclick="setResult('${key}','Pass')">Pass</button>
+        <button class="rpill fail${result==='Fail'?' active':''}" onclick="setResult('${key}','Fail')">Fail</button>
+        <button class="rpill na${result==='N/A'?' active':''}" onclick="setResult('${key}','N/A')">N/A</button>
+      </div>
+    </div>
+    <textarea class="check-comment" id="cmt_${safeKey}" placeholder="Comment…" oninput="setComment('${key}',this.value)">${esc(comment)}</textarea>
+    ${photoRowHtml}
+  </div>`;
+}
+
+function renderRoomBlock(room, idx, ci) {
+  const items = ROOM_ITEMS.map(item => renderCheckItem(`room_${idx}_${item.id}`, item, ci)).join('');
+  const codeOptions = Object.entries(ROOM_CODES).map(([k,v]) =>
+    `<option value="${k}"${room.code===k?' selected':''}>${k} — ${v.split('/')[0].trim()}</option>`
+  ).join('');
+  return `<div class="area-block" id="roomBlock_${idx}">
+    <div class="area-block-header">
+      <span class="rc-badge">RC ${room.code||'?'}</span>
+      <select onchange="updateRoomCode(${idx},this.value)">
+        <option value="">Select code…</option>${codeOptions}
+      </select>
+      <input type="text" value="${esc(room.name||'')}" placeholder="Room name (optional)" oninput="updateRoomName(${idx},this.value)">
+      <button class="btn-remove-area" onclick="removeRoom(${idx})">✕</button>
+    </div>
+    ${items}
+  </div>`;
+}
+
+function renderBathBlock(bath, idx, ci) {
+  const items = BATH_ITEMS.map(item => renderCheckItem(`bath_${idx}_${item.id}`, item, ci)).join('');
+  return `<div class="area-block" id="bathBlock_${idx}">
+    <div class="area-block-header">
+      <span class="rc-badge">BATH ${idx+1}</span>
+      <input type="text" value="${esc(bath.name||'')}" placeholder="e.g. Master Bath, Full Bath, Half Bath" oninput="updateBathName(${idx},this.value)">
+      <button class="btn-remove-area" onclick="removeBath(${idx})">✕</button>
+    </div>
+    ${items}
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════
+//  INTERACTIONS
+// ════════════════════════════════════════════════════════
+function updateHeader() {
+  const ci = currentInspection;
+  const addr = [ci.info.address, ci.info.city].filter(Boolean).join(', ') || 'New Inspection';
+  document.getElementById('headerAddr').textContent = addr;
+}
+
+function setType(t) {
+  currentInspection.info.typeInspection = t;
+  document.querySelectorAll('.insp-type-pill').forEach(b => b.classList.toggle('active', b.textContent.trim() === t));
+}
+
+function setHousingType(t) {
+  currentInspection.info.housingType = t;
+  // Re-render only the housing type buttons to avoid full re-render
+  document.querySelectorAll('[onclick^="setHousingType"]').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim() === t);
+  });
+}
+
+function setResult(key, result) {
+  const ci = currentInspection;
+  if (!ci.checks[key]) ci.checks[key] = {};
+  const prev = ci.checks[key].result;
+  ci.checks[key].result = prev === result ? '' : result;
+  const newResult = ci.checks[key].result;
+  const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+  const container = document.getElementById('ci_' + safeKey);
+  if (!container) return;
+  container.querySelectorAll('.rpill').forEach(b => {
+    b.classList.remove('active');
+    if (newResult === 'Pass' && b.classList.contains('pass')) b.classList.add('active');
+    else if (newResult === 'Fail' && b.classList.contains('fail')) b.classList.add('active');
+    else if (newResult === 'N/A' && b.classList.contains('na')) b.classList.add('active');
+  });
+  const isFail = newResult === 'Fail';
+  container.classList.toggle('is-fail', isFail);
+  updateProgress();
+  updateFailCount();
+}
+
+function setComment(key, val) {
+  if (!currentInspection.checks[key]) currentInspection.checks[key] = {};
+  currentInspection.checks[key].comment = val;
+}
+
+function setTypeVal(key, val) {
+  if (!currentInspection.checks[key]) currentInspection.checks[key] = {};
+  currentInspection.checks[key].typeVal = val;
+}
+
+function setSummary(result) {
+  currentInspection.summary.result = result;
+  document.querySelectorAll('.sum-btn').forEach(b => {
+    b.classList.toggle('active',
+      (result==='Pass' && b.classList.contains('pass')) ||
+      (result==='Fail' && b.classList.contains('fail')) ||
+      (result==='Inconclusive' && b.classList.contains('inc'))
+    );
+  });
+}
+
+function addRoom() {
+  const ci = currentInspection;
+  ci.rooms.push({ name: '', code: '' });
+  const idx = ci.rooms.length - 1;
+  const div = document.createElement('div');
+  div.innerHTML = renderRoomBlock(ci.rooms[idx], idx, ci);
+  document.getElementById('roomsContainer').appendChild(div.firstElementChild);
+}
+
+function removeRoom(idx) {
+  if (!confirm('Remove this room?')) return;
+  currentInspection.rooms.splice(idx, 1);
+  Object.keys(currentInspection.checks).forEach(k => { if (k.startsWith(`room_${idx}_`)) delete currentInspection.checks[k]; });
+  renderForm();
+}
+
+function updateRoomCode(idx, val) {
+  currentInspection.rooms[idx].code = val;
+  const badge = document.querySelector(`#roomBlock_${idx} .rc-badge`);
+  if (badge) badge.textContent = `RC ${val||'?'}`;
+}
+
+function updateRoomName(idx, val) { currentInspection.rooms[idx].name = val; }
+
+function addBath() {
+  const ci = currentInspection;
+  ci.baths.push({ name: '' });
+  const idx = ci.baths.length - 1;
+  const div = document.createElement('div');
+  div.innerHTML = renderBathBlock(ci.baths[idx], idx, ci);
+  document.getElementById('bathsContainer').appendChild(div.firstElementChild);
+}
+
+function removeBath(idx) {
+  if (!confirm('Remove this bathroom?')) return;
+  currentInspection.baths.splice(idx, 1);
+  Object.keys(currentInspection.checks).forEach(k => { if (k.startsWith(`bath_${idx}_`)) delete currentInspection.checks[k]; });
+  renderForm();
+}
+
+function updateBathName(idx, val) { currentInspection.baths[idx].name = val; }
+
+function updateProgress() {
+  const ci = currentInspection;
+  let total = 0, done = 0;
+  const countItems = (prefix, items) => {
+    items.forEach(item => {
+      total++;
+      if ((ci.checks[prefix + '_' + item.id] || {}).result) done++;
+    });
+  };
+  countItems('living_room', ROOM_ITEMS);
+  countItems('kitchen', KITCHEN_ITEMS);
+  ci.rooms.forEach((r, i) => countItems(`room_${i}`, ROOM_ITEMS));
+  ci.baths.forEach((b, i) => countItems(`bath_${i}`, BATH_ITEMS));
+  BUILDING_CHECKLIST.forEach(s => countItems(s.id, s.items));
+  const pct = total ? Math.round(done / total * 100) : 0;
+  const el = document.getElementById('progressFill');
+  if (el) el.style.width = pct + '%';
+}
+
+function updateFailCount() {
+  const n = countFails(currentInspection);
+  const el = document.getElementById('failCount');
+  if (!el) return;
+  el.classList.toggle('visible', n > 0);
+  el.querySelector('.fail-count-num').textContent = n;
+  el.querySelector('.fail-count-label').textContent = `Failed item${n !== 1 ? 's' : ''} — review before completing`;
+}
+
+// ════════════════════════════════════════════════════════
+//  SAVE
+// ════════════════════════════════════════════════════════
+function saveInspection() {
+  saveInspectionToStore(currentInspection);
+  showToast('Saved ✓');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ════════════════════════════════════════════════════════
+//  PRINT
+// ════════════════════════════════════════════════════════
+function printFromDash(id) {
+  const insp = getAll().find(i => i.id === id);
+  if (insp) { currentInspection = insp; printInspection(); }
+}
+
+function printInspection() {
+  const ci = currentInspection;
+  const addr = [ci.info.address, ci.info.city].filter(Boolean).join(', ') || 'No address';
+  const allFails = getAllFails(ci);
+
+  // ── Build a section table (skip items with no result to keep it clean)
+  function buildTable(prefix, items, label) {
+    const rows = items.map(item => {
+      const key = prefix + '_' + item.id;
+      const check = ci.checks[key] || {};
+      const r = check.result || '';
+      if (!r && !check.typeVal && !check.comment) return '';
+      const cls = r === 'Pass' ? 'pass' : r === 'Fail' ? 'fail' : 'na';
+      const rowCls = r === 'Fail' ? 'fail-row' : r === 'N/A' ? 'na-row' : '';
+      const typeStr = (item.typeField && check.typeVal)
+        ? `<div style="font-size:9px;color:#475569;margin-bottom:2px"><strong>${item.typeField}:</strong> ${esc(check.typeVal)}</div>`
+        : '';
+      return `<tr class="${rowCls}">
+        <td class="pv-col-item">${typeStr}${item.label}</td>
+        <td class="pv-col-result"><span class="pv-result ${cls}">${r||'—'}</span></td>
+        <td class="pv-col-comment">${esc(check.comment||'')}</td>
+      </tr>`;
+    }).filter(Boolean).join('');
+
+    if (!rows) return '';
+
+    // Collect photos from all items in this section
+    const allPhotos = [];
+    items.forEach(item => {
+      const key = prefix + '_' + item.id;
+      const photos = (ci.checks[key] || {}).photos || [];
+      photos.forEach((src, pi) => {
+        allPhotos.push({ label: item.label, src, idx: pi });
+      });
+    });
+
+    const photoHtml = allPhotos.length ? `
+      <div class="pv-photo-grid">
+        ${allPhotos.map(p => `
+          <div class="pv-photo-item">
+            <img src="${p.src}" alt="${esc(p.label)}">
+            ${esc(p.label.length > 30 ? p.label.substring(0,28)+'…' : p.label)}
+          </div>`).join('')}
+      </div>` : '';
+
+    return `<div class="pv-section">
+      <div class="pv-section-title">${label}</div>
+      <table class="pv-table">
+        <thead><tr>
+          <th class="pv-col-item">Item</th>
+          <th class="pv-col-result">Result</th>
+          <th class="pv-col-comment">Comment</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${photoHtml}
+    </div>`;
+  }
+
+  let sections = '';
+
+  // ── FAILED ITEMS SUMMARY (top of report — most important)
+  if (allFails.length) {
+    const failRows = allFails.map(f =>
+      `<tr class="fail-row">
+        <td style="width:22%">${esc(f.area)}</td>
+        <td style="width:40%">${esc(f.label)}</td>
+        <td>${esc(f.comment) || '<em style="color:#94a3b8">No comment</em>'}</td>
+      </tr>`
+    ).join('');
+    sections += `<div class="pv-fails-box">
+      <div class="pv-fails-title">
+        ⚠ Failed Items Requiring Correction
+        <span>${allFails.length} item${allFails.length !== 1 ? 's' : ''} — must be resolved before unit approval</span>
+      </div>
+      <table class="pv-table">
+        <thead><tr><th>Area</th><th>Item</th><th>Comment / Deficiency Detail</th></tr></thead>
+        <tbody>${failRows}</tbody>
+      </table>
+    </div>`;
+  }
+
+  // ── SECTION ORDER: Living Room, Kitchen, Bathrooms, Other Rooms, Building sections
+  sections += buildTable('living_room', ROOM_ITEMS, '🛋 Living Room');
+  sections += buildTable('kitchen', KITCHEN_ITEMS, '🍳 Kitchen');
+
+  ci.baths.forEach((bath, idx) => {
+    sections += buildTable(`bath_${idx}`, BATH_ITEMS,
+      `🚿 Bathroom: ${bath.name || `Bath ${idx+1}`}`);
+  });
+
+  ci.rooms.forEach((room, idx) => {
+    const code = room.code ? `RC ${room.code} — ${ROOM_CODES[room.code]||''}` : 'No Code';
+    const name = room.name || `Area ${idx+1}`;
+    sections += buildTable(`room_${idx}`, ROOM_ITEMS, `🚪 ${name} (${code})`);
+  });
+
+  BUILDING_CHECKLIST.forEach(s => {
+    sections += buildTable(s.id, s.items, `${s.icon} ${s.title}`);
+  });
+
+  // ── AMENITIES (only if any checked)
+  const am = ci.amenities || {};
+  const hasAnyAmenity = AMENITIES.some(g =>
+    g.items.some(item => am[`${g.id}_${item.id}`]) || !!am[`${g.id}_other`]
+  );
+  if (hasAnyAmenity) {
+    let amRows = '';
+    AMENITIES.forEach(group => {
+      const checked = group.items.filter(item => am[`${group.id}_${item.id}`]).map(item => item.label);
+      const other = am[`${group.id}_other`];
+      if (checked.length || other) {
+        amRows += `<tr>
+          <td style="width:22%;font-weight:bold">${group.icon} ${group.title}</td>
+          <td>${checked.join(' &nbsp;·&nbsp; ')}${other ? (checked.length ? ' &nbsp;·&nbsp; ' : '') + '<em>Other: ' + esc(other) + '</em>' : ''}</td>
+        </tr>`;
+      }
+    });
+    sections += `<div class="pv-section">
+      <div class="pv-section-title">⭐ Section C — Special Amenities</div>
+      <table class="pv-table">
+        <thead><tr><th style="width:22%">Area</th><th>Features Observed</th></tr></thead>
+        <tbody>${amRows}</tbody>
+      </table>
+    </div>`;
+  }
+
+  // ── Overall result badge
+  const resultKey = ci.summary.result || 'pending';
+  const badgeCls = resultKey === 'Pass' ? 'pass' : resultKey === 'Fail' ? 'fail' : resultKey === 'Inconclusive' ? 'inc' : 'pending';
+  const badgeLabel = resultKey === 'Pass' ? '✓ Pass' : resultKey === 'Fail' ? '✗ Fail' : resultKey === 'Inconclusive' ? '? Inconclusive' : 'Pending';
+  const inspDate = ci.info.dateInspection || fmtDate(ci.created);
+
+  document.getElementById('print-view').innerHTML = `
+    <div class="pv-header">
+      <div class="pv-header-left">
+        <div class="pv-title">HQS Health &amp; Safety Inspection Report</div>
+        <div class="pv-sub">Based on HUD Housing Quality Standards (HUD-52580, 4/2023) &nbsp;·&nbsp; This report reflects inspector observations and may vary from HUD's official form</div>
+      </div>
+      <div class="pv-header-right">
+        <div class="pv-overall-badge ${badgeCls}">${badgeLabel}</div>
+        <div class="pv-date">Inspected: ${inspDate}</div>
+      </div>
+    </div>
+
+    <div class="pv-meta-wrap">
+      <div class="pv-meta-box">
+        <div class="pv-meta-box-title">Property &amp; Inspection Info</div>
+        <div class="pv-meta-body">
+          <div class="pv-meta-row full"><span class="lbl">Address: </span>${addr}</div>
+          <div class="pv-meta-row"><span class="lbl">Tenant: </span>${ci.info.tenant||'—'}</div>
+          <div class="pv-meta-row"><span class="lbl">Tenant ID: </span>${ci.info.tenantId||'—'}</div>
+          <div class="pv-meta-row"><span class="lbl">Inspector: </span>${ci.info.inspector||'—'}</div>
+          <div class="pv-meta-row"><span class="lbl">PHA: </span>${ci.info.pha||'—'}</div>
+          <div class="pv-meta-row"><span class="lbl">Type: </span>${ci.info.typeInspection||'Initial'}</div>
+          <div class="pv-meta-row"><span class="lbl">Date of Request: </span>${ci.info.dateRequest||'—'}</div>
+          <div class="pv-meta-row"><span class="lbl">Year Built: </span>${ci.info.yearBuilt||'—'}</div>
+          <div class="pv-meta-row"><span class="lbl">Bedrooms: </span>${ci.info.bedrooms||'—'}</div>
+          <div class="pv-meta-row"><span class="lbl">Children &lt;6: </span>${ci.info.children||'0'}</div>
+          <div class="pv-meta-row full"><span class="lbl">Housing Type: </span>${ci.info.housingType||'—'}</div>
+        </div>
+      </div>
+      <div class="pv-meta-box">
+        <div class="pv-meta-box-title">Owner / Property Management</div>
+        <div class="pv-meta-body">
+          <div class="pv-meta-row full"><span class="lbl">Company: </span>${ci.owner.companyName||'—'}</div>
+          <div class="pv-meta-row full"><span class="lbl">Contact: </span>${ci.owner.contactName||'—'}</div>
+          <div class="pv-meta-row"><span class="lbl">Phone: </span>${ci.owner.phone||'—'}</div>
+          <div class="pv-meta-row"><span class="lbl">Email: </span>${ci.owner.email||'—'}</div>
+          <div class="pv-meta-row full"><span class="lbl">Mailing Address: </span>${ci.owner.address||'—'}</div>
+        </div>
+      </div>
+    </div>
+
+    ${sections}
+
+    <div class="pv-notes-box">
+      <div class="pv-notes-title">Inspector Notes</div>
+      <div class="pv-notes-body">${ci.summary.notes ? esc(ci.summary.notes) : '<span style="color:#94a3b8;font-style:italic">No notes recorded.</span>'}</div>
+    </div>
+
+    <div class="pv-sigs">
+      <div>
+        <div class="pv-sig-line"></div>
+        <div class="pv-sig-label">Inspector Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date</div>
+      </div>
+      <div>
+        <div class="pv-sig-line"></div>
+        <div class="pv-sig-label">Owner / Agent Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date</div>
+      </div>
+    </div>
+
+    <div class="pv-footer">
+      <span>Based on HUD Housing Quality Standards (HUD-52580, 4/2023) — Variations in this report may not reflect HUD's official standards</span>
+      <span>Generated: ${new Date().toLocaleString()} &nbsp;|&nbsp; HQS Inspection Tool v1.0 &nbsp;|&nbsp; Labor Compliance Solutions &nbsp;|&nbsp; https://github.com/robvilla14</span>
+    </div>`;
+
+  document.getElementById('dashboard').classList.remove('active');
+  document.getElementById('inspection').classList.remove('active');
+  document.getElementById('print-view').style.display = 'block';
+  window.print();
+  setTimeout(() => {
+    document.getElementById('print-view').style.display = 'none';
+    if (currentInspection) document.getElementById('inspection').classList.add('active');
+    else showDashboard();
+  }, 500);
+}
+
+function getAllFails(ci) {
+  const fails = [];
+  const check = (prefix, items, areaLabel) => {
+    items.forEach(item => {
+      const key = prefix + '_' + item.id;
+      const c = ci.checks[key] || {};
+      if (c.result === 'Fail') fails.push({ area: areaLabel, label: item.label, comment: c.comment || '' });
+    });
+  };
+  check('living_room', ROOM_ITEMS, 'Living Room');
+  check('kitchen', KITCHEN_ITEMS, 'Kitchen');
+  ci.rooms.forEach((r, i) => check(`room_${i}`, ROOM_ITEMS, r.name || `Room ${i+1} (RC ${r.code||'?'})`));
+  ci.baths.forEach((b, i) => check(`bath_${i}`, BATH_ITEMS, b.name || `Bath ${i+1}`));
+  BUILDING_CHECKLIST.forEach(s => check(s.id, s.items, s.title));
+  return fails;
+}
+
+function renderAmenitiesSection(ci) {
+  const am = ci.amenities || {};
+  const groups = AMENITIES.map(group => {
+    const checkedCount = group.items.filter(item => am[`${group.id}_${item.id}`]).length;
+    const countBadge = checkedCount > 0 ? `<span class="group-checked-count">${checkedCount}</span>` : '';
+    const isOpen = group.items.some(item => am[`${group.id}_${item.id}`]) || !!am[`${group.id}_other`];
+
+    const items = group.items.map(item => {
+      const key = `${group.id}_${item.id}`;
+      const checked = !!am[key];
+      return `<div class="amenity-item" onclick="toggleAmenity('${group.id}','${item.id}')">
+        <div class="amenity-checkbox${checked?' checked':''}" id="amcb_${key}">${checked?'✓':''}</div>
+        <div class="amenity-item-label">${item.label}</div>
+      </div>`;
+    }).join('');
+
+    const otherVal = am[`${group.id}_other`] || '';
+    const otherField = `<div class="amenity-other">
+      <input type="text" placeholder="Other: specify…" value="${esc(otherVal)}" oninput="setAmenityOther('${group.id}',this.value)">
+    </div>`;
+
+    return `<div class="amenity-group" id="amgroup_${group.id}">
+      <button class="amenity-toggle${isOpen?' open':''}" onclick="toggleAmenityGroup('${group.id}')">
+        <span>${group.icon} ${group.title}</span>
+        <span style="display:flex;align-items:center;gap:6px">
+          ${countBadge}
+          <span class="toggle-arrow">▶</span>
+        </span>
+      </button>
+      <div class="amenity-group-body${isOpen?' open':''}" id="ambody_${group.id}">
+        ${items}
+        ${otherField}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="form-card" style="margin-top:12px">
+    <div class="card-header">
+      <h3>⭐ Section C — Special Amenities</h3>
+      <span style="font-size:10px;color:var(--gray);font-family:var(--mono)">Optional — tap to expand</span>
+    </div>
+    <div style="padding:10px 14px;background:#fffbeb;border-bottom:1px solid var(--border);font-size:11px;color:#92400e;line-height:1.5">
+      These items are <strong>not pass/fail</strong>. Check any positive features present. Used to support rent reasonableness determinations.
+    </div>
+    ${groups}
+  </div>`;
+}
+
+function toggleAmenityGroup(groupId) {
+  const btn = document.querySelector(`#amgroup_${groupId} .amenity-toggle`);
+  const body = document.getElementById(`ambody_${groupId}`);
+  if (!btn || !body) return;
+  const isOpen = body.classList.contains('open');
+  btn.classList.toggle('open', !isOpen);
+  body.classList.toggle('open', !isOpen);
+}
+
+function toggleAmenity(groupId, itemId) {
+  const ci = currentInspection;
+  if (!ci.amenities) ci.amenities = {};
+  const key = `${groupId}_${itemId}`;
+  ci.amenities[key] = !ci.amenities[key];
+  const cb = document.getElementById(`amcb_${key}`);
+  if (cb) {
+    cb.classList.toggle('checked', !!ci.amenities[key]);
+    cb.textContent = ci.amenities[key] ? '✓' : '';
+  }
+  // Update count badge on group header
+  const group = AMENITIES.find(g => g.id === groupId);
+  if (group) {
+    const count = group.items.filter(item => ci.amenities[`${groupId}_${item.id}`]).length;
+    const btn = document.querySelector(`#amgroup_${groupId} .amenity-toggle`);
+    if (btn) {
+      let badge = btn.querySelector('.group-checked-count');
+      if (count > 0) {
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'group-checked-count';
+          btn.querySelector('span:last-child').prepend(badge);
+        }
+        badge.textContent = count;
+      } else if (badge) {
+        badge.remove();
+      }
+    }
+  }
+}
+
+function setAmenityOther(groupId, val) {
+  if (!currentInspection.amenities) currentInspection.amenities = {};
+  currentInspection.amenities[`${groupId}_other`] = val;
+}
+
+
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ════════════════════════════════════════════════════════
+//  PHOTOS
+// ════════════════════════════════════════════════════════
+function addPhoto(key, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    // Resize before storing to keep localStorage lean
+    const img = new Image();
+    img.onload = function() {
+      const MAX = 800;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width  = Math.round(img.width  * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+      const ci = currentInspection;
+      if (!ci.checks[key]) ci.checks[key] = {};
+      if (!ci.checks[key].photos) ci.checks[key].photos = [];
+      ci.checks[key].photos.push(dataUrl);
+      // Re-render just the photo row
+      const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const row = document.getElementById('photorow_' + safeKey);
+      if (row) {
+        const photos = ci.checks[key].photos;
+        const thumbs = photos.map((src, pi) =>
+          `<div class="photo-thumb-wrap">
+            <img class="photo-thumb" src="${src}" alt="photo">
+            <button class="photo-thumb-del" onclick="removePhoto('${key}',${pi})" title="Remove">✕</button>
+          </div>`
+        ).join('');
+        row.innerHTML = thumbs +
+          `<button class="btn-add-photo" onclick="document.getElementById('photoinput_${safeKey}').click()">📷<span>Photo</span></button>
+           <input class="photo-input" type="file" id="photoinput_${safeKey}" accept="image/*" capture="environment" onchange="addPhoto('${key}',this)">`;
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  input.value = ''; // reset so same file can be selected again
+}
+
+function removePhoto(key, idx) {
+  const ci = currentInspection;
+  if (!ci.checks[key] || !ci.checks[key].photos) return;
+  ci.checks[key].photos.splice(idx, 1);
+  const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const row = document.getElementById('photorow_' + safeKey);
+  if (row) {
+    const photos = ci.checks[key].photos;
+    const thumbs = photos.map((src, pi) =>
+      `<div class="photo-thumb-wrap">
+        <img class="photo-thumb" src="${src}" alt="photo">
+        <button class="photo-thumb-del" onclick="removePhoto('${key}',${pi})" title="Remove">✕</button>
+      </div>`
+    ).join('');
+    row.innerHTML = thumbs +
+      `<button class="btn-add-photo" onclick="document.getElementById('photoinput_${safeKey}').click()">📷<span>Photo</span></button>
+       <input class="photo-input" type="file" id="photoinput_${safeKey}" accept="image/*" capture="environment" onchange="addPhoto('${key}',this)">`;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  INIT — wrapped in DOMContentLoaded for mobile WebKit
+// ════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function() {
+  renderDashboard();
+});
+</script>
+</body>
+</html>
