@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>HQS Inspection</title>
+<title>Housing Unit Inspection</title>
 <style>
   :root {
     --navy: #0f1923;
@@ -607,8 +607,8 @@
 <!-- ══════════════════════ DASHBOARD ══════════════════════ -->
 <div class="screen active" id="dashboard">
   <div class="dash-header">
-    <h1>HQS Inspector</h1>
-    <p>Health &amp; Safety Inspection Tool &nbsp;·&nbsp; Labor Compliance Solutions</p>
+    <h1>Housing Unit Inspector</h1>
+    <p>Housing Unit Inspection Report &nbsp;·&nbsp; Labor Compliance Solutions</p>
   </div>
   <div class="dash-body">
     <button class="btn-new" onclick="newInspection()">+ New Inspection</button>
@@ -645,7 +645,7 @@
   <div class="form-header">
     <button class="btn-back" onclick="goBack()">←</button>
     <div class="form-header-text">
-      <h2>HQS Inspection</h2>
+      <h2>Housing Unit Inspection</h2>
       <div class="form-header-addr" id="headerAddr">New Inspection</div>
     </div>
   </div>
@@ -674,32 +674,41 @@ const ROOM_CODES = {
   '6': 'Other'
 };
 
-// Standard items for bedrooms and living areas
+// Standard items for living areas, bedrooms, and other rooms
 const ROOM_ITEMS = [
   { id: 'electrical',  label: 'Electrical — outlets functional, no hazards',        hint: 'No exposed wiring, cover plates present, no overloading' },
+  { id: 'gfci',        label: 'GFCI — present and functional (if applicable)',       hint: 'Required near water sources; mark N/A if not applicable for this area' },
   { id: 'lighting',    label: 'Lighting — adequate and functional',                  hint: 'Ceiling/wall fixture or switched outlet operational' },
   { id: 'switches',    label: 'Switches — functional, cover plates present',         hint: null },
   { id: 'window',      label: 'Window condition — operable, locks functional',       hint: 'Opens, closes, and latches; no broken glass', typeField: 'Window Type', typePlaceholder: 'e.g. Vinyl, Wood, Aluminum, Single/Double pane' },
   { id: 'ceiling',     label: 'Ceiling condition',                                   hint: 'No significant damage, staining, or peeling paint' },
   { id: 'floor',       label: 'Floor condition — no trip hazards',                   hint: 'Secure flooring, no major damage or deterioration', typeField: 'Flooring Type', typePlaceholder: 'e.g. Carpet, Hardwood, Vinyl, Tile, Laminate' },
+  { id: 'door',        label: 'Door — functional, closes and latches properly',      hint: 'No significant damage; hardware operational' },
+  { id: 'closet',      label: 'Closet — present and accessible (if applicable)',     hint: 'Required for sleeping rooms; mark N/A if not a bedroom' },
   { id: 'smoke',       label: 'Smoke detector — present and functional',             hint: 'Test audible alarm; required within 10 ft of sleeping room' },
   { id: 'co',          label: 'Carbon monoxide detector — present and functional',   hint: 'Required if gas appliances or attached garage present' },
 ];
 
-// Kitchen items — no smoke/CO, add GFCI
+// Kitchen items — no smoke/CO, add GFCI and appliances
 const KITCHEN_ITEMS = [
-  { id: 'electrical',  label: 'Electrical — outlets functional, no hazards',        hint: 'No exposed wiring, cover plates present' },
-  { id: 'gfci',        label: 'GFCI — present and functional',                      hint: 'Test with GFCI tester; all outlets within 6 ft of sink' },
-  { id: 'lighting',    label: 'Lighting — adequate and functional',                  hint: null },
-  { id: 'switches',    label: 'Switches — functional, cover plates present',         hint: null },
-  { id: 'window',      label: 'Window condition',                                    hint: 'Opens, closes, and latches; no broken glass', typeField: 'Window Type', typePlaceholder: 'e.g. Vinyl, Wood, Aluminum, Single/Double pane' },
-  { id: 'ceiling',     label: 'Ceiling condition',                                   hint: 'No significant damage, staining, or peeling paint' },
-  { id: 'floor',       label: 'Floor condition',                                     hint: 'Secure flooring, no major damage', typeField: 'Flooring Type', typePlaceholder: 'e.g. Linoleum, Vinyl, Tile, Hardwood' },
-  { id: 'stove',       label: 'Stove / Range / Oven — all burners functional',      hint: 'Gas ignition or electric elements operational', typeField: 'Range Type', typePlaceholder: 'e.g. Gas, Electric, Glass-top, Coil' },
-  { id: 'fridge',      label: 'Refrigerator — functional and maintaining temp',      hint: null },
-  { id: 'sink',        label: 'Sink — hot and cold water, drains properly',          hint: null },
-  { id: 'storage',     label: 'Adequate food storage space',                         hint: 'Cabinets, pantry, or shelving present' },
-  { id: 'pest',        label: 'No evidence of pest infestation',                     hint: 'Droppings, gnaw marks, nests under sink or in cabinets' },
+  { id: 'electrical',   label: 'Electrical — outlets functional, no hazards',        hint: 'No exposed wiring, cover plates present' },
+  { id: 'gfci',         label: 'GFCI — present and functional',                      hint: 'Test with GFCI tester; all outlets within 6 ft of sink' },
+  { id: 'lighting',     label: 'Lighting — adequate and functional',                  hint: null },
+  { id: 'switches',     label: 'Switches — functional, cover plates present',         hint: null },
+  { id: 'window',       label: 'Window condition',                                    hint: 'Opens, closes, and latches; no broken glass', typeField: 'Window Type', typePlaceholder: 'e.g. Vinyl, Wood, Aluminum, Single/Double pane' },
+  { id: 'ceiling',      label: 'Ceiling condition',                                   hint: 'No significant damage, staining, or peeling paint' },
+  { id: 'floor',        label: 'Floor condition',                                     hint: 'Secure flooring, no major damage', typeField: 'Flooring Type', typePlaceholder: 'e.g. Linoleum, Vinyl, Tile, Hardwood' },
+  { id: 'cabinets',     label: 'Cabinets and drawers — functional, no damage',        hint: 'Doors and drawers open/close properly; no significant damage or pest evidence' },
+  { id: 'counters',     label: 'Counters — condition acceptable',                     hint: 'No significant damage, burns, delamination, or unsanitary conditions' },
+  { id: 'stove',        label: 'Stove / Range / Oven — all burners functional',      hint: 'Gas ignition or electric elements operational', typeField: 'Range Type', typePlaceholder: 'e.g. Gas, Electric, Glass-top, Coil' },
+  { id: 'range_hood',   label: 'Range hood / exhaust fan — functional',               hint: 'Fan operates and vents properly; filter present if applicable' },
+  { id: 'microwave',    label: 'Microwave — functional (if provided)',                hint: 'Mark N/A if not owner-supplied' },
+  { id: 'dishwasher',   label: 'Dishwasher — functional (if provided)',               hint: 'Mark N/A if not owner-supplied; no leaks at door seal or supply line' },
+  { id: 'disposal',     label: 'Garbage disposal — functional (if provided)',         hint: 'Mark N/A if not owner-supplied' },
+  { id: 'fridge',       label: 'Refrigerator — functional and maintaining temp',      hint: null },
+  { id: 'sink',         label: 'Sink — hot and cold water, drains properly',          hint: null },
+  { id: 'storage',      label: 'Adequate food storage space',                         hint: 'Cabinets, pantry, or shelving present' },
+  { id: 'pest',         label: 'No evidence of pest infestation',                     hint: 'Droppings, gnaw marks, nests under sink or in cabinets' },
 ];
 
 // Bathroom items — no smoke/CO, add GFCI
@@ -711,6 +720,8 @@ const BATH_ITEMS = [
   { id: 'window',      label: 'Window condition (if present)',                       hint: null, typeField: 'Window Type', typePlaceholder: 'e.g. Vinyl, Wood, Frosted, N/A' },
   { id: 'ceiling',     label: 'Ceiling condition',                                   hint: 'No significant moisture damage, peeling paint, or mold' },
   { id: 'floor',       label: 'Floor condition',                                     hint: 'Secure tile or flooring, no water damage', typeField: 'Flooring Type', typePlaceholder: 'e.g. Ceramic Tile, Vinyl, Linoleum' },
+  { id: 'door',        label: 'Door — functional, provides privacy',                 hint: 'Closes, latches, and locks; no significant damage' },
+  { id: 'cabinets',    label: 'Cabinets and counters — condition acceptable',        hint: 'No significant damage, water damage, or deterioration' },
   { id: 'toilet',      label: 'Toilet — present and functional',                     hint: 'Flushes, no leaks at base or supply line' },
   { id: 'sink',        label: 'Sink — hot and cold water, drains properly',          hint: null },
   { id: 'tub_shower',  label: 'Tub or shower — functional',                         hint: 'No significant leaks; caulk/grout in acceptable condition' },
@@ -1647,8 +1658,8 @@ function printInspection() {
   document.getElementById('print-view').innerHTML = `
     <div class="pv-header">
       <div class="pv-header-left">
-        <div class="pv-title">HQS Health &amp; Safety Inspection Report</div>
-        <div class="pv-sub">Based on HUD Housing Quality Standards (HUD-52580, 4/2023) &nbsp;·&nbsp; This report reflects inspector observations and may vary from HUD's official form</div>
+        <div class="pv-title">Housing Unit Inspection Report</div>
+        <div class="pv-sub">Housing Choice Voucher Program &nbsp;·&nbsp; Based on HUD Housing Quality Standards — Variations may not reflect HUD's official form</div>
       </div>
       <div class="pv-header-right">
         <div class="pv-overall-badge ${badgeCls}">${badgeLabel}</div>
@@ -1705,7 +1716,7 @@ function printInspection() {
 
     <div class="pv-footer">
       <span>Based on HUD Housing Quality Standards (HUD-52580, 4/2023) — Variations in this report may not reflect HUD's official standards</span>
-      <span>Generated: ${new Date().toLocaleString()} &nbsp;|&nbsp; HQS Inspection Tool v1.0 &nbsp;|&nbsp; Labor Compliance Solutions &nbsp;|&nbsp; https://github.com/robvilla14</span>
+      <span>Generated: ${new Date().toLocaleString()} &nbsp;|&nbsp; Housing Unit Inspection Tool v1.0 &nbsp;|&nbsp; Labor Compliance Solutions &nbsp;|&nbsp; https://github.com/robvilla14</span>
     </div>`;
 
   document.getElementById('dashboard').classList.remove('active');
