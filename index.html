@@ -674,7 +674,7 @@ const ROOM_CODES = {
   '6': 'Other'
 };
 
-// Standard items for living areas, bedrooms, and other rooms
+// Standard items for living areas, other rooms (hallways, dining, patio, etc.)
 const ROOM_ITEMS = [
   { id: 'electrical',  label: 'Electrical — outlets functional, no hazards',        hint: 'No exposed wiring, cover plates present, no overloading' },
   { id: 'gfci',        label: 'GFCI — present and functional (if applicable)',       hint: 'Required near water sources; mark N/A if not applicable for this area' },
@@ -684,8 +684,22 @@ const ROOM_ITEMS = [
   { id: 'ceiling',     label: 'Ceiling condition',                                   hint: 'No significant damage, staining, or peeling paint' },
   { id: 'floor',       label: 'Floor condition — no trip hazards',                   hint: 'Secure flooring, no major damage or deterioration', typeField: 'Flooring Type', typePlaceholder: 'e.g. Carpet, Hardwood, Vinyl, Tile, Laminate' },
   { id: 'door',        label: 'Door — functional, closes and latches properly',      hint: 'No significant damage; hardware operational' },
-  { id: 'closet',      label: 'Closet — present and accessible (if applicable)',     hint: 'Required for sleeping rooms; mark N/A if not a bedroom' },
   { id: 'smoke',       label: 'Smoke detector — present and functional',             hint: 'Test audible alarm; required within 10 ft of sleeping room' },
+  { id: 'co',          label: 'Carbon monoxide detector — present and functional',   hint: 'Required if gas appliances or attached garage present' },
+];
+
+// Bedroom-specific items — AFCI instead of GFCI, includes closet
+const BEDROOM_ITEMS = [
+  { id: 'electrical',  label: 'Electrical — outlets functional, no hazards',        hint: 'No exposed wiring, cover plates present, no overloading' },
+  { id: 'afci',        label: 'AFCI — arc-fault protection present (if applicable)', hint: 'Required in bedrooms per CA code (NEC 2014+); mark N/A if pre-code or jurisdiction exempt' },
+  { id: 'lighting',    label: 'Lighting — adequate and functional',                  hint: 'Ceiling/wall fixture or switched outlet operational' },
+  { id: 'switches',    label: 'Switches — functional, cover plates present',         hint: null },
+  { id: 'window',      label: 'Window condition — operable, egress compliant',       hint: 'Opens, closes, latches; sleeping rooms require egress window (min 5.7 sq ft, 24" height, 20" width)', typeField: 'Window Type', typePlaceholder: 'e.g. Vinyl, Wood, Aluminum, Single/Double pane' },
+  { id: 'ceiling',     label: 'Ceiling condition',                                   hint: 'No significant damage, staining, or peeling paint' },
+  { id: 'floor',       label: 'Floor condition — no trip hazards',                   hint: 'Secure flooring, no major damage or deterioration', typeField: 'Flooring Type', typePlaceholder: 'e.g. Carpet, Hardwood, Vinyl, Tile, Laminate' },
+  { id: 'door',        label: 'Door — functional, closes and latches properly',      hint: 'No significant damage; hardware operational' },
+  { id: 'closet',      label: 'Closet — present and accessible',                     hint: 'Required for HCV sleeping rooms; adequate storage space' },
+  { id: 'smoke',       label: 'Smoke detector — present and functional',             hint: 'Required inside each sleeping room and within 10 ft outside' },
   { id: 'co',          label: 'Carbon monoxide detector — present and functional',   hint: 'Required if gas appliances or attached garage present' },
 ];
 
@@ -917,7 +931,8 @@ function blankInspection() {
       companyName: '', contactName: '', phone: '', email: '', address: '',
     },
     checks: {},
-    rooms: [],       // { name, code }
+    rooms: [],       // other areas { name, code }
+    bedrooms: [],    // { name }
     baths: [],       // { name }
     amenities: {},   // { groupId_itemId: true, groupId_other: 'text' }
     summary: { result: '', notes: '' },
@@ -1220,6 +1235,14 @@ function renderForm() {
   // ── KITCHEN (fixed)
   html += renderAreaCard('kitchen', '🍳 Kitchen', KITCHEN_ITEMS, ci);
 
+  // ── DYNAMIC BEDROOMS
+  if (!ci.bedrooms) ci.bedrooms = [];
+  html += `<div class="form-card" style="margin-top:12px">
+    <div class="card-header"><h3>🛏 Bedrooms</h3><span style="font-size:10px;color:var(--gray);font-family:var(--mono)">AFCI · egress · closet</span></div>
+    <div id="bedsContainer">${ci.bedrooms.map((b,i) => renderBedroomBlock(b,i,ci)).join('')}</div>
+  </div>
+  <button class="btn-add-area" onclick="addBedroom()">+ Add Bedroom</button>`;
+
   // ── DYNAMIC BATHROOMS
   html += `<div class="form-card" style="margin-top:12px">
     <div class="card-header"><h3>🚿 Bathrooms</h3></div>
@@ -1350,6 +1373,46 @@ function renderRoomBlock(room, idx, ci) {
     </div>
     ${items}
   </div>`;
+}
+
+function renderBedroomBlock(bed, idx, ci) {
+  const items = BEDROOM_ITEMS.map(item => renderCheckItem(`bed_${idx}_${item.id}`, item, ci)).join('');
+  return `<div class="area-block" id="bedBlock_${idx}">
+    <div class="area-block-header">
+      <span class="rc-badge">BED ${idx+1}</span>
+      <input type="text" value="${esc(bed.name||'')}" placeholder="e.g. Master, Bedroom 2, Den" oninput="updateBedName(${idx},this.value)">
+      <button class="btn-remove-area" onclick="removeBedroom(${idx})">✕</button>
+    </div>
+    ${items}
+  </div>`;
+}
+
+function addBedroom() {
+  if (!currentInspection.bedrooms) currentInspection.bedrooms = [];
+  currentInspection.bedrooms.push({ name: '' });
+  const ci = currentInspection;
+  const idx = ci.bedrooms.length - 1;
+  const container = document.getElementById('bedsContainer');
+  const div = document.createElement('div');
+  div.innerHTML = renderBedroomBlock(ci.bedrooms[idx], idx, ci);
+  container.appendChild(div.firstElementChild);
+}
+
+function removeBedroom(idx) {
+  if (!confirm('Remove this bedroom?')) return;
+  currentInspection.bedrooms.splice(idx, 1);
+  // Remove associated checks
+  const prefix = `bed_${idx}_`;
+  Object.keys(currentInspection.checks).forEach(k => { if (k.startsWith(prefix)) delete currentInspection.checks[k]; });
+  // Re-render bedrooms container
+  const ci = currentInspection;
+  document.getElementById('bedsContainer').innerHTML = ci.bedrooms.map((b,i) => renderBedroomBlock(b,i,ci)).join('');
+  updateProgress();
+}
+
+function updateBedName(idx, val) {
+  if (!currentInspection.bedrooms) return;
+  currentInspection.bedrooms[idx].name = val;
 }
 
 function renderBathBlock(bath, idx, ci) {
@@ -1604,9 +1667,14 @@ function printInspection() {
     </div>`;
   }
 
-  // ── SECTION ORDER: Living Room, Kitchen, Bathrooms, Other Rooms, Building sections
+  // ── SECTION ORDER: Living Room, Kitchen, Bedrooms, Bathrooms, Other Areas, Building sections
   sections += buildTable('living_room', ROOM_ITEMS, '🛋 Living Room');
   sections += buildTable('kitchen', KITCHEN_ITEMS, '🍳 Kitchen');
+
+  (ci.bedrooms || []).forEach((bed, idx) => {
+    sections += buildTable(`bed_${idx}`, BEDROOM_ITEMS,
+      `🛏 Bedroom: ${bed.name || `Bedroom ${idx+1}`}`);
+  });
 
   ci.baths.forEach((bath, idx) => {
     sections += buildTable(`bath_${idx}`, BATH_ITEMS,
@@ -1741,8 +1809,9 @@ function getAllFails(ci) {
   };
   check('living_room', ROOM_ITEMS, 'Living Room');
   check('kitchen', KITCHEN_ITEMS, 'Kitchen');
-  ci.rooms.forEach((r, i) => check(`room_${i}`, ROOM_ITEMS, r.name || `Room ${i+1} (RC ${r.code||'?'})`));
+  (ci.bedrooms || []).forEach((b, i) => check(`bed_${i}`, BEDROOM_ITEMS, b.name || `Bedroom ${i+1}`));
   ci.baths.forEach((b, i) => check(`bath_${i}`, BATH_ITEMS, b.name || `Bath ${i+1}`));
+  ci.rooms.forEach((r, i) => check(`room_${i}`, ROOM_ITEMS, r.name || `Room ${i+1} (RC ${r.code||'?'})`));
   BUILDING_CHECKLIST.forEach(s => check(s.id, s.items, s.title));
   return fails;
 }
