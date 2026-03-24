@@ -666,11 +666,35 @@
   /* Legacy inline photo styles — no longer used in print but kept for safety */
   .pv-photo-grid { display: none; }
   .pv-photo-item { display: none; }
+
+  /* ── FLOATING SCROLL BUTTON ── */
+  #scrollToggle {
+    position: fixed;
+    bottom: 80px;
+    right: 16px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--navy2);
+    border: 1.5px solid rgba(245,158,11,0.4);
+    color: var(--amber);
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 300;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    transition: background 0.15s;
+  }
+  #scrollToggle:active { background: var(--steel); }
+  #scrollToggle.visible { display: flex; }
 </style>
 </head>
 <body>
 
 <div class="toast" id="toast"></div>
+<button id="scrollToggle" onclick="scrollToggleAction()" title="Scroll">↑</button>
 
 <!-- ══════════════════════ DASHBOARD ══════════════════════ -->
 <div class="screen active" id="dashboard">
@@ -724,7 +748,7 @@
   <div id="formBody"></div>
   <div class="save-bar">
     <button class="btn-save" onclick="saveInspection()">💾 Save</button>
-    <button class="btn-print-form" onclick="printInspection()">🖨 Print / Export</button>
+    <button class="btn-print-form" onclick="_printOrigin='form';printInspection()">🖨 Print / Export</button>
   </div>
 </div>
 
@@ -740,7 +764,7 @@ const ROOM_CODES = {
   '1': 'Bedroom / Sleeping Room',
   '2': 'Dining Room / Dining Area',
   '3': 'Second Living Room / Family Room / Den / Playroom / TV Room',
-  '4': 'Entrance Hall / Corridor / Hall / Staircase',
+  '4': 'Hall / Corridor / Entrance / Staircase',
   '5': 'Additional Bathroom',
   '6': 'Other'
 };
@@ -748,10 +772,10 @@ const ROOM_CODES = {
 // Standard items for living areas, other rooms (hallways, dining, patio, etc.)
 const ROOM_ITEMS = [
   { id: 'electrical',  label: 'Electrical — outlets functional, no hazards',        hint: 'No exposed wiring, cover plates present, no overloading' },
-  { id: 'gfci',        label: 'GFCI — present and functional (if applicable)',       hint: 'Required near water sources; mark N/A if not applicable for this area' },
   { id: 'lighting',    label: 'Lighting — adequate and functional',                  hint: 'Ceiling/wall fixture or switched outlet operational' },
   { id: 'switches',    label: 'Switches — functional, cover plates present',         hint: null },
   { id: 'window',      label: 'Window condition — operable, locks functional',       hint: 'Opens, closes, and latches; no broken glass', typeField: 'Window Type', typePlaceholder: 'e.g. Vinyl, Wood, Aluminum, Single/Double pane' },
+  { id: 'walls',       label: 'Wall condition',                                      hint: 'No significant damage, staining, water intrusion, or peeling paint' },
   { id: 'ceiling',     label: 'Ceiling condition',                                   hint: 'No significant damage, staining, or peeling paint' },
   { id: 'floor',       label: 'Floor condition — no trip hazards',                   hint: 'Secure flooring, no major damage or deterioration', typeField: 'Flooring Type', typePlaceholder: 'e.g. Carpet, Hardwood, Vinyl, Tile, Laminate' },
   { id: 'door',        label: 'Door — functional, closes and latches properly',      hint: 'No significant damage; hardware operational' },
@@ -766,6 +790,8 @@ const BEDROOM_ITEMS = [
   { id: 'lighting',    label: 'Lighting — adequate and functional',                  hint: 'Ceiling/wall fixture or switched outlet operational' },
   { id: 'switches',    label: 'Switches — functional, cover plates present',         hint: null },
   { id: 'window',      label: 'Window condition — operable, egress compliant',       hint: 'Opens, closes, latches; sleeping rooms require egress window (min 5.7 sq ft, 24" height, 20" width)', typeField: 'Window Type', typePlaceholder: 'e.g. Vinyl, Wood, Aluminum, Single/Double pane' },
+  { id: 'walls',       label: 'Wall condition',                                      hint: 'No significant damage, staining, water intrusion, or peeling paint' },
+  { id: 'walls',       label: 'Wall condition',                                      hint: 'No significant damage, staining, water intrusion, or peeling paint' },
   { id: 'ceiling',     label: 'Ceiling condition',                                   hint: 'No significant damage, staining, or peeling paint' },
   { id: 'floor',       label: 'Floor condition — no trip hazards',                   hint: 'Secure flooring, no major damage or deterioration', typeField: 'Flooring Type', typePlaceholder: 'e.g. Carpet, Hardwood, Vinyl, Tile, Laminate' },
   { id: 'door',        label: 'Door — functional, closes and latches properly',      hint: 'No significant damage; hardware operational' },
@@ -781,6 +807,7 @@ const KITCHEN_ITEMS = [
   { id: 'lighting',     label: 'Lighting — adequate and functional',                  hint: null },
   { id: 'switches',     label: 'Switches — functional, cover plates present',         hint: null },
   { id: 'window',       label: 'Window condition',                                    hint: 'Opens, closes, and latches; no broken glass', typeField: 'Window Type', typePlaceholder: 'e.g. Vinyl, Wood, Aluminum, Single/Double pane' },
+  { id: 'walls',        label: 'Wall condition',                                      hint: 'No significant damage, staining, water intrusion, or peeling paint' },
   { id: 'ceiling',      label: 'Ceiling condition',                                   hint: 'No significant damage, staining, or peeling paint' },
   { id: 'floor',        label: 'Floor condition',                                     hint: 'Secure flooring, no major damage', typeField: 'Flooring Type', typePlaceholder: 'e.g. Linoleum, Vinyl, Tile, Hardwood' },
   { id: 'cabinets',     label: 'Cabinets and drawers — functional, no damage',        hint: 'Doors and drawers open/close properly; no significant damage or pest evidence' },
@@ -803,6 +830,7 @@ const BATH_ITEMS = [
   { id: 'lighting',    label: 'Lighting — adequate and functional',                  hint: null },
   { id: 'switches',    label: 'Switches — functional, cover plates present',         hint: null },
   { id: 'window',      label: 'Window condition (if present)',                       hint: null, typeField: 'Window Type', typePlaceholder: 'e.g. Vinyl, Wood, Frosted, N/A' },
+  { id: 'walls',       label: 'Wall condition',                                      hint: 'No significant moisture damage, mold, deteriorated caulk, or loose tile' },
   { id: 'ceiling',     label: 'Ceiling condition',                                   hint: 'No significant moisture damage, peeling paint, or mold' },
   { id: 'floor',       label: 'Floor condition',                                     hint: 'Secure tile or flooring, no water damage', typeField: 'Flooring Type', typePlaceholder: 'e.g. Ceramic Tile, Vinyl, Linoleum' },
   { id: 'door',        label: 'Door — functional, provides privacy',                 hint: 'Closes, latches, and locks; no significant damage' },
@@ -986,6 +1014,7 @@ const AMENITIES = [
 //  STATE & STORAGE
 // ════════════════════════════════════════════════════════
 let currentInspection = null;
+let _printOrigin = "dashboard"; // "dashboard" or "form"
 
 function blankInspection() {
   return {
@@ -1029,6 +1058,7 @@ function deleteInspection(id) { saveAll(getAll().filter(i => i.id !== id)); }
 function showDashboard() {
   document.getElementById('dashboard').classList.add('active');
   document.getElementById('inspection').classList.remove('active');
+  const sb = document.getElementById('scrollToggle'); if (sb) sb.classList.remove('visible');
   renderDashboard();
 }
 
@@ -1041,6 +1071,7 @@ function renderDashboard() {
     el.innerHTML = list.map(insp => {
       const addr = [insp.info.address, insp.info.city].filter(Boolean).join(', ') || 'No address';
       const tenantId = insp.info.tenantId ? `<span style="font-family:var(--mono);font-size:10px;color:var(--amber);margin-left:6px;opacity:0.85">#${esc(insp.info.tenantId)}</span>` : '';
+      const phaTag = insp.info.pha ? `<span style="font-family:var(--mono);font-size:10px;color:#94a3b8;margin-left:6px">${esc(insp.info.pha)}</span>` : '';
       const inspDate = insp.info.dateInspection ? `Inspected: ${insp.info.dateInspection}` : '';
       const savedDate = `Saved: ${fmtDateTime(insp.updated || insp.created)}`;
       const fails = countFails(insp);
@@ -1050,7 +1081,7 @@ function renderDashboard() {
                   : 'badge-draft" >DRAFT';
       return `<div class="insp-card">
         <div class="insp-card-top">
-          <div class="insp-card-addr">${addr}${tenantId}</div>
+          <div class="insp-card-addr">${addr}${tenantId}${phaTag}</div>
           <span class="insp-badge ${badge}</span>
         </div>
         <div class="insp-card-meta">
@@ -1441,7 +1472,7 @@ function renderForm() {
     <div style="padding:10px 14px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:11px;color:#64748b;line-height:1.7">
       <strong style="font-family:var(--mono);font-size:10px">ROOM CODES:</strong><br>
       1 = Bedroom/Sleeping Room &nbsp;|&nbsp; 2 = Dining Room/Area &nbsp;|&nbsp; 3 = Family Room/Den/Playroom<br>
-      4 = Entrance/Hall/Staircase &nbsp;|&nbsp; 5 = Additional Bathroom &nbsp;|&nbsp; 6 = Other
+      4 = Hall/Corridor/Entrance/Staircase &nbsp;|&nbsp; 5 = Additional Bathroom &nbsp;|&nbsp; 6 = Other
     </div>
     <div id="roomsContainer">${ci.rooms.map((r,i) => renderRoomBlock(r,i,ci)).join('')}</div>
   </div>
@@ -1565,7 +1596,7 @@ function renderBedroomBlock(bed, idx, ci) {
   return `<div class="area-block" id="bedBlock_${idx}">
     <div class="area-block-header">
       <span class="rc-badge">BED ${idx+1}</span>
-      <input type="text" value="${esc(bed.name||'')}" placeholder="e.g. Master, Bedroom 2, Den" oninput="updateBedName(${idx},this.value)">
+      <input type="text" value="${esc(bed.name||'')}" placeholder="e.g. Primary, Bedroom 2, Den" oninput="updateBedName(${idx},this.value)">
       <button class="btn-remove-area" onclick="removeBedroom(${idx})">✕</button>
     </div>
     ${items}
@@ -1605,7 +1636,7 @@ function renderBathBlock(bath, idx, ci) {
   return `<div class="area-block" id="bathBlock_${idx}">
     <div class="area-block-header">
       <span class="rc-badge">BATH ${idx+1}</span>
-      <input type="text" value="${esc(bath.name||'')}" placeholder="e.g. Master Bath, Full Bath, Half Bath" oninput="updateBathName(${idx},this.value)">
+      <input type="text" value="${esc(bath.name||'')}" placeholder="e.g. Primary Bath, Full Bath, Half Bath" oninput="updateBathName(${idx},this.value)">
       <button class="btn-remove-area" onclick="removeBath(${idx})">✕</button>
     </div>
     ${items}
@@ -1768,10 +1799,11 @@ function showToast(msg) {
 // ════════════════════════════════════════════════════════
 function printFromDash(id) {
   const insp = getAll().find(i => i.id === id);
-  if (insp) { currentInspection = insp; printInspection(); }
+  if (insp) { currentInspection = insp; _printOrigin = 'dashboard'; printInspection(); }
 }
 
 function printInspection() {
+  if (_printOrigin !== 'dashboard') _printOrigin = 'form';
   const ci = currentInspection;
   const addr = [ci.info.address, ci.info.city].filter(Boolean).join(', ') || 'No address';
   const allFails = getAllFails(ci);
@@ -2002,8 +2034,12 @@ function printInspection() {
     window.print();
     setTimeout(() => {
       document.getElementById('print-view').style.display = 'none';
-      if (currentInspection) document.getElementById('inspection').classList.add('active');
-      else showDashboard();
+      if (_printOrigin === 'form') {
+        document.getElementById('inspection').classList.add('active');
+      } else {
+        _printOrigin = 'dashboard';
+        showDashboard();
+      }
     }, 500);
   };
 
@@ -2223,6 +2259,42 @@ function removePhoto(key, idx) {
 document.addEventListener('DOMContentLoaded', function() {
   renderDashboard();
 });
+
+// ════════════════════════════════════════════════════════
+//  SCROLL TOGGLE
+// ════════════════════════════════════════════════════════
+(function() {
+  let _atBottom = false;
+  function updateScrollBtn() {
+    const btn = document.getElementById('scrollToggle');
+    if (!btn) return;
+    const inspActive = document.getElementById('inspection').classList.contains('active');
+    if (!inspActive) { btn.classList.remove('visible'); return; }
+    const scrolled = window.scrollY || document.documentElement.scrollTop;
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    _atBottom = scrolled > maxScroll - 80;
+    btn.textContent = _atBottom ? '↑' : '↓';
+    btn.classList.toggle('visible', maxScroll > 100);
+  }
+  window.scrollToggleAction = function() {
+    if (_atBottom) { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    else { window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }); }
+  };
+  window.addEventListener('scroll', updateScrollBtn, { passive: true });
+  // Re-evaluate when form renders
+  const _origRenderForm = window.renderForm;
+  // Hook into showInspection to show button
+  const _origShowInsp = window.showInspection;
+  window.showInspection = function() {
+    _origShowInsp && _origShowInsp();
+    setTimeout(updateScrollBtn, 100);
+  };
+  window.showDashboard_scrollHook = function() {
+    const btn = document.getElementById('scrollToggle');
+    if (btn) btn.classList.remove('visible');
+  };
+})();
+
 </script>
 </body>
 </html>
