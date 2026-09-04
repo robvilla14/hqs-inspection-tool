@@ -791,7 +791,6 @@ const BEDROOM_ITEMS = [
   { id: 'switches',    label: 'Switches — functional, cover plates present',         hint: null },
   { id: 'window',      label: 'Window condition — operable, egress compliant',       hint: 'Opens, closes, latches; sleeping rooms require egress window (min 5.7 sq ft, 24" height, 20" width)', typeField: 'Window Type', typePlaceholder: 'e.g. Vinyl, Wood, Aluminum, Single/Double pane' },
   { id: 'walls',       label: 'Wall condition',                                      hint: 'No significant damage, staining, water intrusion, or peeling paint' },
-  { id: 'walls',       label: 'Wall condition',                                      hint: 'No significant damage, staining, water intrusion, or peeling paint' },
   { id: 'ceiling',     label: 'Ceiling condition',                                   hint: 'No significant damage, staining, or peeling paint' },
   { id: 'floor',       label: 'Floor condition — no trip hazards',                   hint: 'Secure flooring, no major damage or deterioration', typeField: 'Flooring Type', typePlaceholder: 'e.g. Carpet, Hardwood, Vinyl, Tile, Laminate' },
   { id: 'door',        label: 'Door — functional, closes and latches properly',      hint: 'No significant damage; hardware operational' },
@@ -1127,12 +1126,14 @@ function updateStorageMeter() {
 // ════════════════════════════════════════════════════════
 //  EXPORT / IMPORT / CLEAR
 // ════════════════════════════════════════════════════════
-function exportAllJSON() {
+async function exportAllJSON() {
   const list = getAll();
   if (!list.length) { showToast('No inspections to export'); return; }
-  const date = new Date().toISOString().slice(0,10);
-  downloadJSON(list, `HQS_Backup_${date}.json`);
-  showToast(`Exported ${list.length} inspection${list.length !== 1 ? 's' : ''} ✓`);
+  const date = getLocalDateStamp();
+  const exported = await downloadJSON(list, `HQS_Backup_${date}.json`);
+  if (exported) {
+    showToast(`Exported ${list.length} inspection${list.length !== 1 ? 's' : ''} ✓`);
+  }
 }
 
 function exportSinglePrompt() {
@@ -1150,26 +1151,103 @@ function exportSinglePrompt() {
   showModal('Export Single Inspection', opts);
 }
 
-function exportOne(id) {
+async function exportOne(id) {
   const insp = getAll().find(i => i.id === id);
   if (!insp) return;
   const addr = (insp.info.address || 'Inspection').replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
-  const date = (insp.info.dateInspection || new Date().toISOString().slice(0,10));
-  downloadJSON(insp, `HQS_${addr}_${date}.json`);
-  closeModal();
-  showToast('Exported ✓');
+  const date = insp.info.dateInspection || getLocalDateStamp();
+  const exported = await downloadJSON(insp, `HQS_${addr}_${date}.json`);
+  if (exported) {
+    closeModal();
+    showToast('Exported ✓');
+  }
+  // On cancel or failure the picker stays open so the user can retry.
 }
 
-function downloadJSON(data, filename) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+// Local-clock date stamp (YYYY-MM-DD) for filenames that mean "today".
+// Uses local getFullYear/getMonth/getDate so the date matches the device,
+// not UTC. Standardized with DFWR and HUD-11.
+function getLocalDateStamp(date = new Date()) {
+  const pad = value => String(value).padStart(2, '0');
+  return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
+}
+
+// Guard: set synchronously so a second tap while an export is mid-flight
+// returns false without opening a second share operation. Reset in finally.
+let downloadInProgress = false;
+
+/**
+ * Standardized backup delivery, shared by Backup All and Export One.
+ *   - Native share sheet when the browser confirms it can share the File
+ *     (Save to Files / AirDrop / Email on iOS; Windows share panel on Chrome/Edge)
+ *   - Blob object-URL download fallback otherwise (e.g. desktop Firefox)
+ * Returns true when handed to a share target or the fallback download starts,
+ * false on guard-suppressed tap, user cancellation, or genuine failure.
+ * Callers show their success toast only on true.
+ */
+async function downloadJSON(data, filename) {
+  if (downloadInProgress) return false;
+  downloadInProgress = true;
+
+  try {
+    const json = JSON.stringify(data, null, 2);
+    const mimeType = 'application/json';
+    const blob = new Blob([json], { type: mimeType });
+
+    // Prefer the native share sheet only when the browser confirms it can
+    // share this specific file. navigator.share alone is insufficient: a
+    // browser may support sharing text/URLs but not files.
+    let file = null;
+    let canShareFile = false;
+
+    if (typeof File === 'function') {
+      file = new File([blob], filename, { type: mimeType });
+      try {
+        canShareFile =
+          typeof navigator.share === 'function' &&
+          typeof navigator.canShare === 'function' &&
+          navigator.canShare({ files: [file] });
+      } catch (err) {
+        canShareFile = false;
+      }
+    }
+
+    if (canShareFile) {
+      try {
+        // Share the file only — no title. iOS counts a title as a second
+        // share item ("2 Items"); the filename rides on file.name.
+        await navigator.share({ files: [file] });
+        return true;
+      } catch (err) {
+        // Closing the share sheet is a user cancellation, not an app error.
+        if (err.name === 'AbortError') return false;
+        // Genuine share failure: report once and stop. Do NOT fall through to
+        // the Blob download — the tap's user activation is already consumed.
+        console.error('HQS export sharing failed:', err);
+        showToast('Export failed. Please try again.');
+        return false;
+      }
+    }
+
+    // Fallback for browsers without native file sharing (e.g. desktop Firefox).
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Delay cleanup so the browser has time to consume the object URL.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return true;
+  } catch (err) {
+    console.error('HQS export failed:', err);
+    showToast('Export failed. Please try again.');
+    return false;
+  } finally {
+    downloadInProgress = false;
+  }
 }
 
 function importJSON(input) {
