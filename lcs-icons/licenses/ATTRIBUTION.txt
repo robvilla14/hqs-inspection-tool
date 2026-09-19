@@ -1,0 +1,38 @@
+LCS Icon Library Attribution
+============================
+
+This icon library is used by the Housing Unit Inspection application.
+
+Required Icon Set
+-----------------
+Source: Flaticon
+License document: required-icons-license.html
+Icons: See the Required Icons section in ICON_INVENTORY.md.
+
+Optional Icon Set
+-----------------
+Source: Flaticon
+License document: optional-icons-license.html
+Icons: See the Optional Utility Icons section in ICON_INVENTORY.md.
+
+Optional Replacement Icon Set
+-----------------------------
+Source: Flaticon
+License document: optional-replacement-icons-license.html
+Purpose: Replacement icons selected to maintain consistent filled-path
+construction and avoid incompatible stroke-based SVGs.
+
+Icons: Identify the specific replacement filenames covered by this license.
+
+Modifications
+-------------
+SVG files were prepared for application use by:
+
+- Removing fixed width and height attributes
+- Removing editor metadata and unused identifiers
+- Normalizing supported black fills to currentColor
+- Preserving viewBox, paths, circles, fill rules, and clip rules
+- Embedding sanitized SVG markup in lcs-icons.js
+
+The original license documents and download records are retained in the
+licenses directory.

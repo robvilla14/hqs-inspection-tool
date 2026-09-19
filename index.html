@@ -1,62 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+/* Phase 4b appearance foundation: resolve stored theme before first paint (no FOUC). */
+(function () {
+  try {
+    var m = localStorage.getItem('lcs-theme-mode');
+    if (m !== 'light' && m !== 'dark' && m !== 'system') m = 'system';
+    var dark = m === 'dark' || (m === 'system' && window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches);
+    var r = dark ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', r);
+    document.documentElement.style.colorScheme = r;
+  } catch (e) {}
+})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Housing Unit Inspection</title>
 <style>
   :root {
-    --navy: #0f1923;
-    --navy2: #1a2733;
-    --steel: #2c3e50;
+    color-scheme: light;
+    /* Phase 4b — shared appearance tokens (Bluewood, light default) */
+    --bg: #F4F6F9;
+    --surface: #FFFFFF;
+    --surface-alt: #DBE2EB;   /* Mystic soft band */
+    --input-bg: #EEF2F7;
+    --header: #313F59;        /* Pickled Bluewood */
+    --header-fg: #F1F5F9;
+    --header-accent: #8EACB9; /* Nepal */
+    --header-muted: #B0C2CE;  /* Heather */
+    --primary: #313F59;
+    --on-primary: #FFFFFF;
+    --secondary: #6691A3;     /* Bermuda Gray */
+    --accent: #6691A3;
+    --focus: #6691A3;
+    --hairline: rgba(49,63,89,0.12);
+    --chip-bg: #DBE2EB;
+    --ghost-bg: #DBE2EB;
+    --ghost-fg: #526174;
+    --fail-tint: #fff0f0;
+    --fail-border: #fca5a5;
+    /* Semantic status colors — fixed meaning in both modes */
     --amber: #f59e0b;
+    --warning: #f59e0b;
     --red: #ef4444;
     --red-light: #fee2e2;
     --green: #22c55e;
     --green-light: #dcfce7;
-    --gray: #94a3b8;
-    --gray-light: #f1f5f9;
-    --white: #ffffff;
-    --border: #e2e8f0;
-    --text: #1e293b;
+    /* Neutrals / legacy aliases mapped onto roles */
+    --navy: #313F59;
+    --navy2: #26364A;
+    --steel: #475569;
+    --gray: #526174;
+    --gray-light: #EEF2F7;
+    --white: #FFFFFF;
+    --border: #B0C2CE;
+    --text: #1F2937;
+    --muted: #526174;
     --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Segoe UI Mono', monospace;
     --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   }
 
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #111827;
+    --surface: #1D2939;
+    --surface-alt: #26364A;
+    --input-bg: #182230;
+    --header: #313F59;
+    --header-fg: #F1F5F9;
+    --header-accent: #8EACB9;
+    --header-muted: #B0C2CE;
+    --primary: #8EACB9;
+    --on-primary: #0F1620;
+    --secondary: #6691A3;
+    --accent: #8EACB9;
+    --focus: #8EACB9;
+    --hairline: rgba(255,255,255,0.08);
+    --chip-bg: rgba(255,255,255,0.08);
+    --ghost-bg: rgba(255,255,255,0.08);
+    --ghost-fg: #F1F5F9;
+    --fail-tint: #3a1f22;
+    --fail-border: #7f1d1d;
+    --navy2: #26364A;
+    --steel: #475569;
+    --gray: #B0C2CE;
+    --gray-light: #182230;
+    --white: #F1F5F9;
+    --border: #4F6278;
+    --text: #F1F5F9;
+    --muted: #B0C2CE;
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  body { font-family: var(--sans); background: var(--gray-light); color: var(--text); min-height: 100vh; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; }
 
   .screen { display: none; }
   .screen.active { display: block; }
 
   /* ── DASHBOARD ── */
-  #dashboard { min-height: 100vh; background: var(--navy); }
+  #dashboard { min-height: 100vh; background: var(--bg); }
 
-  .dash-header { padding: 24px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
-  .dash-header h1 { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--amber); margin-bottom: 4px; }
+  .dash-header { padding: 24px 20px 16px; border-bottom: 1px solid var(--hairline); }
+  .dash-header h1 { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--primary); margin-bottom: 4px; }
   .dash-header p { font-size: 11px; color: var(--gray); font-family: var(--mono); }
   .dash-body { padding: 20px; }
 
-  .btn-new { width: 100%; background: var(--amber); color: var(--navy); border: none; border-radius: 8px; padding: 16px; font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; margin-bottom: 24px; }
+  .btn-new { width: 100%; background: var(--primary); color: var(--on-primary); border: none; border-radius: 8px; padding: 16px; font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; margin-bottom: 24px; }
 
   .section-label { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gray); margin-bottom: 10px; }
 
   .insp-list { display: flex; flex-direction: column; gap: 10px; }
 
-  .insp-card { background: var(--navy2); border-radius: 10px; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.06); }
+  .insp-card { background: var(--surface); border-radius: 10px; padding: 14px 16px; border: 1px solid var(--border); }
   .insp-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-  .insp-card-addr { font-size: 14px; font-weight: 500; color: var(--white); flex: 1; margin-right: 10px; line-height: 1.3; }
+  .insp-card-addr { font-size: 14px; font-weight: 500; color: var(--text); flex: 1; margin-right: 10px; line-height: 1.3; }
   .insp-badge { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
   .badge-pass { background: var(--green-light); color: #16a34a; }
   .badge-fail { background: var(--red-light); color: #dc2626; }
   .badge-inc { background: #fef9c3; color: #854d0e; }
-  .badge-draft { background: rgba(255,255,255,0.08); color: var(--gray); }
+  .badge-draft { background: var(--chip-bg); color: var(--muted); }
   .insp-card-meta { font-family: var(--mono); font-size: 11px; color: var(--gray); display: flex; gap: 12px; flex-wrap: wrap; }
   .insp-card-actions { display: flex; gap: 8px; margin-top: 12px; }
   .btn-sm { flex: 1; padding: 8px; border-radius: 6px; border: none; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.05em; cursor: pointer; text-transform: uppercase; }
-  .btn-open { background: var(--amber); color: var(--navy); }
-  .btn-print { background: rgba(255,255,255,0.08); color: var(--gray); }
+  .btn-open { background: var(--primary); color: var(--on-primary); }
+  .btn-print { background: var(--ghost-bg); color: var(--ghost-fg); }
   .btn-del { background: rgba(239,68,68,0.15); color: #f87171; }
 
   .empty-state { text-align: center; padding: 48px 20px; }
@@ -73,8 +143,8 @@
     flex: 1;
     padding: 11px 8px;
     border-radius: 8px;
-    border: 1.5px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.05);
+    border: 1.5px solid var(--border);
+    background: var(--surface);
     color: var(--gray);
     font-family: var(--mono);
     font-size: 10px;
@@ -88,14 +158,14 @@
     gap: 4px;
     transition: all 0.15s;
   }
-  .btn-data:active { background: rgba(255,255,255,0.1); }
+  .btn-data:active { background: var(--surface-alt); }
   .btn-data .btn-data-icon { font-size: 18px; }
-  .btn-data.export { border-color: rgba(245,158,11,0.3); color: var(--amber); }
-  .btn-data.import { border-color: rgba(34,197,94,0.3); color: #4ade80; }
+  .btn-data.export { border-color: var(--border); color: var(--primary); }
+  .btn-data.import { border-color: rgba(34,197,94,0.4); color: #16a34a; }
   .btn-data.danger { border-color: rgba(239,68,68,0.2); color: #f87171; }
 
   .storage-bar {
-    background: rgba(255,255,255,0.04);
+    background: var(--surface-alt);
     border-radius: 8px;
     padding: 10px 14px;
     margin-bottom: 16px;
@@ -105,29 +175,57 @@
     gap: 12px;
   }
   .storage-bar-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray); }
-  .storage-bar-track { flex: 1; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
-  .storage-bar-fill { height: 100%; border-radius: 2px; background: var(--amber); transition: width 0.4s; }
+
+  /* LCS icons (Phase 3b) */
+  .lcs-icon { display: inline-block; width: 1.25rem; height: 1.25rem; flex: 0 0 auto; color: inherit; fill: currentColor; vertical-align: middle; }
+  .btn-data .lcs-icon { width: 28px; height: 28px; }
+  .card-header .lcs-icon { width: 18px; height: 18px; color: var(--header-accent); margin-right: 6px; }
+  .btn-add-area .lcs-icon, .btn-add-photo .lcs-icon { width: 18px; height: 18px; margin-right: 4px; }
+  .btn-save .lcs-icon, .btn-print-form .lcs-icon { width: 19px; height: 19px; margin-right: 4px; }
+  .sum-btn .lcs-icon { width: 17px; height: 17px; margin-right: 4px; }
+  .btn-back .lcs-icon, .modal-close .lcs-icon { width: 22px; height: 22px; }
+  #scrollToggle .lcs-icon { width: 22px; height: 22px; }
+  .btn-sm .lcs-icon { width: 13px; height: 13px; margin-right: 4px; }
+  .btn-new .lcs-icon { width: 18px; height: 18px; margin-right: 4px; }
+  .storage-bar-label .lcs-icon { width: 12px; height: 12px; margin-right: 4px; }
+  .collapse-arrow.lcs-icon, .toggle-arrow.lcs-icon { width: 12px; height: 12px; color: var(--gray); }
+
+  .storage-bar-track { flex: 1; height: 4px; background: var(--hairline); border-radius: 2px; overflow: hidden; }
+  .storage-bar-fill { height: 100%; border-radius: 2px; background: var(--primary); transition: width 0.4s; }
   .storage-bar-fill.warn { background: #f87171; }
   .storage-bar-pct { font-family: var(--mono); font-size: 10px; color: var(--gray); white-space: nowrap; }
 
   /* ── FORM ── */
-  #inspection { background: var(--gray-light); min-height: 100vh; padding-bottom: 120px; }
+  #inspection { background: var(--bg); min-height: 100vh; padding-bottom: 120px; }
 
-  .form-header { background: var(--navy); padding: 16px 20px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 12px; border-bottom: 2px solid var(--amber); }
-  .btn-back { background: none; border: none; color: var(--amber); font-size: 22px; cursor: pointer; padding: 4px; flex-shrink: 0; }
+  .form-header { background: var(--navy); padding: 16px 20px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 12px; border-bottom: 2px solid var(--header-accent); }
+  .btn-back { background: none; border: none; color: var(--header-accent); font-size: 22px; cursor: pointer; padding: 4px; flex-shrink: 0; }
   .form-header-text { flex: 1; min-width: 0; }
-  .form-header-text h2 { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--amber); }
+  .form-header-text h2 { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--header-accent); }
   .form-header-addr { font-size: 13px; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-  .progress-bar { height: 3px; background: rgba(255,255,255,0.1); }
-  .progress-fill { height: 100%; background: var(--amber); transition: width 0.3s; }
+  .progress-bar { height: 3px; background: var(--border); }
+  .progress-fill { height: 100%; background: var(--primary); transition: width 0.3s; }
 
-  .form-card { background: var(--white); border-radius: 12px; margin: 12px 12px 0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.07); }
+  .form-card { background: var(--surface); border-radius: 12px; margin: 12px 12px 0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.07); }
 
   .card-header { background: var(--navy); padding: 12px 16px; display: flex; align-items: center; gap: 10px; }
-  .card-header h3 { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--amber); flex: 1; }
+  .card-header h3 { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--header-accent); flex: 1; }
 
-  .card-sub-header { background: var(--navy2); padding: 7px 14px; }
+  /* Collapsible sections (Phase 3a) */
+  .card-header.sec-toggle { width: 100%; border: none; cursor: pointer; font: inherit; text-align: left; }
+  .card-header.sec-toggle .collapse-arrow { color: var(--header-muted); font-size: 12px; transition: transform 0.2s; transform: rotate(90deg); }
+  .card-header.sec-toggle.collapsed .collapse-arrow { transform: rotate(0deg); }
+  .card-header.sec-toggle.collapsed ~ * { display: none !important; }
+  .sec-badge { font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.04em; padding: 2px 8px; border-radius: 10px; background: var(--hairline); color: var(--header-muted); white-space: nowrap; }
+  .sec-badge.done { background: var(--green-light); color: #16a34a; }
+  .sec-badge.fail { background: var(--red-light); color: #dc2626; }
+  .sec-controls { display: flex; gap: 8px; padding: 12px 12px 0; }
+  .sec-ctl-btn { flex: 1; padding: 9px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--surface); color: var(--text); font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
+  .sec-ctl-btn:active { background: var(--gray-light); }
+  .sticky-section { position: fixed; left: 0; right: 0; z-index: 90; background: var(--header); color: var(--header-accent); font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 16px; border-bottom: 1px solid var(--hairline); pointer-events: none; }
+
+  .card-sub-header { background: var(--surface-alt); padding: 7px 14px; }
   .card-sub-header span { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray); }
 
   /* INFO GRID */
@@ -144,7 +242,7 @@
   /* TYPE PILLS */
   .type-pills { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 14px; border-bottom: 1px solid var(--border); }
   .type-pill { padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); font-size: 12px; font-weight: 500; cursor: pointer; background: none; color: var(--gray); transition: all 0.15s; }
-  .type-pill.active { background: var(--navy); border-color: var(--navy); color: var(--white); }
+  .type-pill.active { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
 
   /* CHECK ITEMS */
   .check-item { padding: 12px 14px; border-bottom: 1px solid var(--border); }
@@ -160,10 +258,10 @@
   .rpill.na.active { background: var(--steel); border-color: var(--steel); color: white; }
 
   .check-comment { width: 100%; border: 1.5px solid var(--border); border-radius: 6px; padding: 8px 10px; font-family: var(--sans); font-size: 12px; color: var(--text); resize: none; outline: none; background: var(--gray-light); min-height: 34px; display: block; }
-  .check-comment:focus { border-color: var(--amber); background: white; }
+  .check-comment:focus { border-color: var(--focus); background: var(--surface); }
 
-  .check-item.is-fail .check-comment { background: #fff0f0; border-color: #fca5a5; }
-  .check-item.is-fail .check-comment:focus { border-color: var(--red); background: white; }
+  .check-item.is-fail .check-comment { background: var(--fail-tint); border-color: var(--fail-border); }
+  .check-item.is-fail .check-comment:focus { border-color: var(--red); background: var(--surface); }
 
   /* Type field — shown above the check item for floor/window/stove */
   .type-field-row {
@@ -194,19 +292,50 @@
     outline: none;
     background: var(--gray-light);
   }
-  .type-field-row input:focus { border-color: var(--amber); background: white; }
+  .type-field-row input:focus { border-color: var(--focus); background: var(--surface); }
+
+  /* City / State / ZIP row (Phase 2b) */
+  .location-grid { display: grid; grid-template-columns: minmax(0, 1fr) 5.5rem 7rem; gap: 10px; }
+  .location-grid input {
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--text);
+    background: var(--gray-light);
+    outline: none;
+    width: 100%;
+  }
+  .location-grid input:focus { border-color: var(--focus); background: var(--surface); }
+  @media (max-width: 600px) { .location-grid { grid-template-columns: 1fr; } }
+
+  /* Window Material / Type row (Phase 2c) */
+  .window-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 8px 14px 0; }
+  .window-fields label {
+    display: block; font-family: var(--mono); font-size: 9px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray); margin-bottom: 4px;
+  }
+  .window-fields select {
+    width: 100%; border: 1.5px solid var(--border); border-radius: 6px; padding: 8px 10px;
+    font-family: var(--sans); font-size: 13px; color: var(--text); background: var(--gray-light);
+    outline: none; -webkit-appearance: none;
+  }
+  .window-fields select:focus { border-color: var(--focus); background: var(--surface); }
+  .window-note { font-size: 11px; color: var(--gray); font-style: italic; padding: 6px 14px 0; }
+  @media (max-width: 600px) { .window-fields { grid-template-columns: 1fr; } }
 
   /* DYNAMIC AREA BLOCKS */
   .area-block { border-bottom: 2px solid var(--border); }
   .area-block:last-child { border-bottom: none; }
 
-  .area-block-header { background: #1e3a4c; padding: 10px 14px; display: flex; align-items: center; gap: 8px; }
-  .area-block-header .rc-badge { background: var(--amber); color: var(--navy); font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; white-space: nowrap; flex-shrink: 0; }
-  .area-block-header input { background: transparent; border: none; outline: none; color: #94a3b8; font-size: 12px; flex: 1; font-family: var(--sans); }
-  .area-block-header select { background: transparent; border: 1px solid rgba(255,255,255,0.15); outline: none; color: #cbd5e1; font-size: 11px; font-family: var(--mono); border-radius: 4px; padding: 3px 6px; cursor: pointer; -webkit-appearance: none; }
+  .area-block-header { background: var(--surface-alt); padding: 10px 14px; display: flex; align-items: center; gap: 8px; }
+  .area-block-header .rc-badge { background: var(--primary); color: var(--on-primary); font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; white-space: nowrap; flex-shrink: 0; }
+  .area-block-header input { background: transparent; border: none; outline: none; color: var(--text); font-size: 12px; flex: 1; font-family: var(--sans); }
+  .area-block-header select { background: transparent; border: 1px solid var(--border); outline: none; color: var(--text); font-size: 11px; font-family: var(--mono); border-radius: 4px; padding: 3px 6px; cursor: pointer; -webkit-appearance: none; }
   .btn-remove-area { background: rgba(239,68,68,0.15); border: none; color: #f87171; font-size: 16px; cursor: pointer; padding: 3px 8px; border-radius: 4px; flex-shrink: 0; }
 
-  .btn-add-area { display: flex; align-items: center; gap: 8px; width: calc(100% - 24px); margin: 10px 12px 0; padding: 12px 16px; background: white; border: 2px dashed var(--border); border-radius: 10px; color: var(--gray); font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+  .btn-add-area { display: flex; align-items: center; gap: 8px; width: calc(100% - 24px); margin: 10px 12px 0; padding: 12px 16px; background: var(--surface); border: 2px dashed var(--border); border-radius: 10px; color: var(--muted); font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
 
   /* SUMMARY */
   .summary-result { padding: 16px 14px; border-bottom: 1px solid var(--border); }
@@ -222,11 +351,11 @@
   .fail-count-label { font-size: 12px; color: #dc2626; }
 
   /* SAVE BAR */
-  .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--navy); padding: 12px 16px; display: flex; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); z-index: 200; }
-  .btn-save { flex: 1; background: var(--amber); color: var(--navy); border: none; border-radius: 8px; padding: 14px; font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+  .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--header); padding: 12px 16px; display: flex; gap: 10px; border-top: 1px solid var(--hairline); z-index: 200; }
+  .btn-save { flex: 1; background: var(--primary); color: var(--on-primary); border: none; border-radius: 8px; padding: 14px; font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
   .btn-print-form { background: rgba(255,255,255,0.08); color: var(--white); border: none; border-radius: 8px; padding: 14px; font-family: var(--mono); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 
-  .toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-10px); background: var(--navy); color: var(--amber); font-family: var(--mono); font-size: 12px; font-weight: 600; padding: 10px 20px; border-radius: 8px; opacity: 0; transition: all 0.2s; pointer-events: none; z-index: 999; white-space: nowrap; }
+  .toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-10px); background: var(--header); color: var(--header-accent); font-family: var(--mono); font-size: 12px; font-weight: 600; padding: 10px 20px; border-radius: 8px; opacity: 0; transition: all 0.2s; pointer-events: none; z-index: 999; white-space: nowrap; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
   /* ── PHOTOS ── */
@@ -307,8 +436,8 @@
   .amenity-toggle .toggle-arrow { font-size: 14px; transition: transform 0.2s; }
   .amenity-toggle.open .toggle-arrow { transform: rotate(90deg); }
   .amenity-toggle .group-checked-count {
-    background: var(--amber);
-    color: var(--navy);
+    background: var(--primary);
+    color: var(--on-primary);
     font-family: var(--mono);
     font-size: 9px;
     font-weight: 600;
@@ -336,7 +465,7 @@
     height: 22px;
     border-radius: 5px;
     border: 2px solid var(--border);
-    background: white;
+    background: var(--surface);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -345,9 +474,9 @@
     font-size: 13px;
   }
   .amenity-checkbox.checked {
-    background: var(--navy);
-    border-color: var(--navy);
-    color: white;
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--on-primary);
   }
 
   .amenity-item-label {
@@ -371,301 +500,7 @@
     outline: none;
     background: var(--gray-light);
   }
-  .amenity-other input:focus { border-color: var(--amber); background: white; }
-
-  /* ── PRINT ── */
-  @page {
-    margin: 0.6in 0.5in 0.5in;
-    size: letter;
-  }
-
-  @media print {
-    body { background: white; margin: 0; }
-    .screen { display: none !important; }
-    #print-view { display: block !important; padding: 0; }
-  }
-
-  /* Page number footers — injected into DOM, reliable in all browsers */
-  #print-view {
-    counter-reset: printpage;
-  }
-  .pv-page-footer {
-    counter-increment: printpage;
-    text-align: right;
-    font-size: 8px;
-    color: #94a3b8;
-    font-family: Arial, sans-serif;
-    margin-top: 10px;
-    padding-top: 4px;
-    border-top: 1px solid #e2e8f0;
-  }
-  .pv-page-footer::after {
-    content: "Page " counter(printpage);
-  }
-
-  #print-view {
-    display: none;
-    font-family: 'Arial', sans-serif;
-    font-size: 10px;
-    color: #111;
-    padding: 0.5in 0.5in 0.4in;
-    max-width: 8.5in;
-    margin: 0 auto;
-  }
-
-  /* Header */
-  .pv-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    border-bottom: 3px solid #0f1923;
-    padding-bottom: 8px;
-    margin-bottom: 10px;
-  }
-  .pv-header-left .pv-title {
-    font-size: 17px;
-    font-weight: bold;
-    color: #0f1923;
-    letter-spacing: -0.02em;
-  }
-  .pv-header-left .pv-sub {
-    font-size: 9px;
-    color: #666;
-    margin-top: 2px;
-  }
-  .pv-header-right {
-    text-align: right;
-  }
-  .pv-overall-badge {
-    display: inline-block;
-    font-size: 13px;
-    font-weight: bold;
-    padding: 5px 14px;
-    border-radius: 4px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-  .pv-overall-badge.pass { background: #dcfce7; color: #16a34a; border: 2px solid #16a34a; }
-  .pv-overall-badge.fail { background: #fee2e2; color: #dc2626; border: 2px solid #dc2626; }
-  .pv-overall-badge.inc  { background: #fef9c3; color: #854d0e; border: 2px solid #ca8a04; }
-  .pv-overall-badge.pending { background: #f1f5f9; color: #64748b; border: 2px solid #94a3b8; }
-  .pv-header-right .pv-date { font-size: 9px; color: #666; margin-top: 3px; }
-
-  /* Meta block — two columns */
-  .pv-meta-wrap {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 10px;
-  }
-  .pv-meta-box {
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    overflow: hidden;
-  }
-  .pv-meta-box-title {
-    background: #0f1923;
-    color: #f59e0b;
-    font-size: 8px;
-    font-weight: bold;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    padding: 3px 8px;
-  }
-  .pv-meta-body {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 4px 0;
-  }
-  .pv-meta-row {
-    padding: 2px 8px;
-    font-size: 9.5px;
-    line-height: 1.5;
-  }
-  .pv-meta-row.full { grid-column: 1 / -1; }
-  .pv-meta-row .lbl { font-weight: bold; color: #444; }
-
-  /* Fails summary */
-  .pv-fails-box {
-    border: 2px solid #dc2626;
-    border-radius: 3px;
-    margin-bottom: 10px;
-    page-break-inside: avoid;
-  }
-  .pv-fails-title {
-    background: #dc2626;
-    color: white;
-    padding: 4px 10px;
-    font-size: 10px;
-    font-weight: bold;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .pv-fails-title span { font-size: 9px; opacity: 0.85; font-weight: normal; }
-
-  /* Sections */
-  .pv-section {
-    margin-bottom: 8px;
-    page-break-inside: avoid;
-  }
-  .pv-section-title {
-    background: #1e293b;
-    color: #f59e0b;
-    padding: 4px 8px;
-    font-weight: bold;
-    font-size: 9.5px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    page-break-after: avoid;
-  }
-
-  /* Tables */
-  .pv-table {
-    width: 100%;
-    border-collapse: collapse;
-    page-break-inside: auto;
-  }
-  .pv-table th {
-    background: #f8fafc;
-    font-size: 8.5px;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #64748b;
-    padding: 3px 6px;
-    border: 1px solid #d1d5db;
-    text-align: left;
-  }
-  .pv-table td {
-    border: 1px solid #d1d5db;
-    padding: 3px 6px;
-    font-size: 9.5px;
-    vertical-align: top;
-    line-height: 1.4;
-  }
-  .pv-table tr { page-break-inside: avoid; }
-  .pv-table tr.fail-row td { background: #fff5f5; }
-  .pv-table tr.na-row td { color: #94a3b8; }
-  .pv-table tr.na-row td:first-child { font-style: italic; }
-
-  /* Column widths */
-  .pv-col-item    { width: 58%; }
-  .pv-col-result  { width: 9%; text-align: center; }
-  .pv-col-comment { width: 33%; }
-
-  .pv-result { font-weight: bold; font-size: 9px; text-transform: uppercase; }
-  .pv-result.pass { color: #16a34a; }
-  .pv-result.fail { color: #dc2626; }
-  .pv-result.na   { color: #94a3b8; font-weight: normal; font-style: italic; }
-
-  /* Summary / notes */
-  .pv-notes-box {
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    margin-top: 10px;
-    page-break-inside: avoid;
-  }
-  .pv-notes-title {
-    background: #f1f5f9;
-    padding: 3px 8px;
-    font-size: 8.5px;
-    font-weight: bold;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #475569;
-    border-bottom: 1px solid #ccc;
-  }
-  .pv-notes-body { padding: 10px 8px; font-size: 10px; line-height: 1.8; min-height: 120px; }
-
-  /* Signatures */
-  .pv-sigs {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
-    margin-top: 24px;
-    page-break-inside: avoid;
-  }
-  .pv-sig-line { border-bottom: 1.5px solid #111; margin-top: 40px; margin-bottom: 3px; }
-  .pv-sig-label { font-size: 8.5px; color: #666; }
-
-  /* Footer */
-  .pv-footer {
-    margin-top: 12px;
-    padding-top: 6px;
-    border-top: 1px solid #ccc;
-    display: flex;
-    justify-content: space-between;
-    font-size: 8px;
-    color: #94a3b8;
-  }
-
-  /* Notes + Sigs page — force onto its own page */
-  .pv-notes-sigs-page {
-    page-break-before: always;
-    padding-top: 4px;
-  }
-
-  /* Photo Appendix page */
-  .pv-photo-appendix {
-    page-break-before: always;
-    padding-top: 4px;
-  }
-  .pv-photo-appendix-title {
-    font-size: 11px;
-    font-weight: bold;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #334155;
-    border-bottom: 2px solid #334155;
-    padding-bottom: 4px;
-    margin-bottom: 14px;
-  }
-  .pv-photo-appendix-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-  .pv-photo-appendix-item {
-    break-inside: avoid;
-    border: 1px solid #cbd5e1;
-    border-radius: 4px;
-    overflow: hidden;
-  }
-  .pv-photo-appendix-item img {
-    width: 100%;
-    height: 220px;
-    object-fit: cover;
-    display: block;
-  }
-  .pv-photo-appendix-caption {
-    padding: 6px 8px;
-    background: #f8fafc;
-    border-top: 1px solid #e2e8f0;
-  }
-  .pv-photo-appendix-caption .cap-section {
-    font-size: 8px;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #64748b;
-    margin-bottom: 2px;
-  }
-  .pv-photo-appendix-caption .cap-item {
-    font-size: 9.5px;
-    color: #1e293b;
-    line-height: 1.4;
-    margin-bottom: 2px;
-  }
-  .pv-photo-appendix-caption .cap-comment {
-    font-size: 9px;
-    color: #475569;
-    font-style: italic;
-    line-height: 1.4;
-  }
-  /* Legacy inline photo styles — no longer used in print but kept for safety */
-  .pv-photo-grid { display: none; }
-  .pv-photo-item { display: none; }
+  .amenity-other input:focus { border-color: var(--focus); background: var(--surface); }
 
   /* ── FLOATING SCROLL BUTTON ── */
   #scrollToggle {
@@ -675,9 +510,9 @@
     width: 42px;
     height: 42px;
     border-radius: 50%;
-    background: var(--navy2);
-    border: 1.5px solid rgba(245,158,11,0.4);
-    color: var(--amber);
+    background: var(--header);
+    border: 1.5px solid var(--header-accent);
+    color: var(--header-accent);
     font-size: 18px;
     cursor: pointer;
     z-index: 300;
@@ -689,43 +524,59 @@
   }
   #scrollToggle:active { background: var(--steel); }
   #scrollToggle.visible { display: flex; }
+
+  /* ── Phase 4b: appearance control, focus rings, disabled states ── */
+  .appearance { display: inline-flex; gap: 2px; margin-top: 12px; padding: 3px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px; }
+  .appearance-btn { border: none; background: none; color: var(--muted); font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+  .appearance-btn[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); }
+  :where(button, input, select, textarea, a, [tabindex]):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  button:disabled, input:disabled, select:disabled, textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
+  <script src="./pdfmake.min.js"></script>
+  <script src="./vfs_fonts.js"></script>
+  <script src="./lcs-icons/lcs-icons.js"></script>
+  <script src="./build-hqs-doc.js"></script>
 </head>
 <body>
 
 <div class="toast" id="toast"></div>
-<button id="scrollToggle" onclick="scrollToggleAction()" title="Scroll">↑</button>
+<button id="scrollToggle" onclick="scrollToggleAction()" title="Scroll" aria-label="Scroll to top or bottom" data-lcs="scroll-up"></button>
 
 <!-- ══════════════════════ DASHBOARD ══════════════════════ -->
 <div class="screen active" id="dashboard">
   <div class="dash-header">
     <h1>Housing Unit Inspector</h1>
     <p>Housing Unit Inspection Report &nbsp;·&nbsp; Labor Compliance Solutions</p>
+    <div class="appearance" role="group" aria-label="Appearance mode">
+      <button type="button" class="appearance-btn" data-mode="system" aria-pressed="false" onclick="setThemeMode('system')">System</button>
+      <button type="button" class="appearance-btn" data-mode="light" aria-pressed="false" onclick="setThemeMode('light')">Light</button>
+      <button type="button" class="appearance-btn" data-mode="dark" aria-pressed="false" onclick="setThemeMode('dark')">Dark</button>
+    </div>
   </div>
   <div class="dash-body">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
-      <button class="btn-new" style="margin-bottom:0" onclick="newInspection()">+ New Inspection</button>
-      <button class="btn-new" style="margin-bottom:0;background:var(--navy2);color:var(--amber);border:1.5px solid rgba(245,158,11,0.3)" onclick="copyForwardPrompt()">⎘ Copy Forward</button>
+      <button class="btn-new" style="margin-bottom:0" onclick="newInspection()"><span data-lcs="new-inspection"></span> New Inspection</button>
+      <button class="btn-new" style="margin-bottom:0;background:var(--surface);color:var(--primary);border:1.5px solid var(--border)" onclick="copyForwardPrompt()"><span data-lcs="copy-forward"></span> Copy Forward</button>
     </div>
 
     <div class="data-bar">
       <button class="btn-data export" onclick="exportAllJSON()">
-        <span class="btn-data-icon">📤</span>Backup All
+        <span class="btn-data-icon" data-lcs="backup-all"></span>Backup All
       </button>
       <button class="btn-data export" onclick="exportSinglePrompt()">
-        <span class="btn-data-icon">💾</span>Export One
+        <span class="btn-data-icon" data-lcs="export-file"></span>Export One
       </button>
       <button class="btn-data import" onclick="document.getElementById('importFile').click()">
-        <span class="btn-data-icon">📥</span>Import
+        <span class="btn-data-icon" data-lcs="import-file"></span>Import
       </button>
       <button class="btn-data danger" onclick="confirmClearAll()">
-        <span class="btn-data-icon">🗑</span>Clear All
+        <span class="btn-data-icon" data-lcs="delete"></span>Clear All
       </button>
     </div>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
 
     <div class="storage-bar" id="storageBar">
-      <span class="storage-bar-label">Storage</span>
+      <span class="storage-bar-label"><span data-lcs="storage"></span>Storage</span>
       <div class="storage-bar-track"><div class="storage-bar-fill" id="storageFill" style="width:0%"></div></div>
       <span class="storage-bar-pct" id="storagePct">—</span>
     </div>
@@ -738,7 +589,7 @@
 <!-- ══════════════════════ INSPECTION FORM ══════════════════════ -->
 <div class="screen" id="inspection">
   <div class="form-header">
-    <button class="btn-back" onclick="goBack()">←</button>
+    <button class="btn-back" onclick="goBack()" aria-label="Back to saved inspections" data-lcs="back"></button>
     <div class="form-header-text">
       <h2>Housing Unit Inspection</h2>
       <div class="form-header-addr" id="headerAddr">New Inspection</div>
@@ -747,13 +598,10 @@
   <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
   <div id="formBody"></div>
   <div class="save-bar">
-    <button class="btn-save" onclick="saveInspection()">💾 Save</button>
-    <button class="btn-print-form" onclick="_printOrigin='form';printInspection()">🖨 Print / Export</button>
+    <button class="btn-save" onclick="saveInspection()"><span data-lcs="save"></span> Save</button>
+    <button class="btn-print-form" onclick="generateHqsPdf(currentInspection)"><span data-lcs="pdf"></span> Print / Export</button>
   </div>
 </div>
-
-<!-- ══════════════════════ PRINT VIEW ══════════════════════ -->
-<div id="print-view"></div>
 
 <script>
 // ════════════════════════════════════════════════════════
@@ -768,6 +616,10 @@ const ROOM_CODES = {
   '5': 'Additional Bathroom',
   '6': 'Other'
 };
+
+// Window Material / Type option lists (Phase 2c). Unit window items only.
+const WINDOW_MATERIALS = ['Vinyl', 'Metal (Unspecified)', 'Aluminum', 'Wood-Clad', 'Other'];
+const WINDOW_TYPES = ['Single-Hung', 'Double-Hung', 'Sliding', 'Casement', 'Fixed', 'Bay', 'Louver', 'Other'];
 
 // Standard items for living areas, other rooms (hallways, dining, patio, etc.)
 const ROOM_ITEMS = [
@@ -1013,15 +865,15 @@ const AMENITIES = [
 //  STATE & STORAGE
 // ════════════════════════════════════════════════════════
 let currentInspection = null;
-let _printOrigin = "dashboard"; // "dashboard" or "form"
 
 function blankInspection() {
   return {
+    schemaVersion: 3,
     id: Date.now().toString(),
     created: new Date().toISOString(),
     updated: new Date().toISOString(),
     info: {
-      address: '', city: '', tenant: '', tenantId: '',
+      address: '', city: '', cityName: '', state: 'CA', zip: '', tenant: '', tenantId: '',
       inspector: '', pha: '', dateInspection: '', dateRequest: '',
       typeInspection: 'Initial', yearBuilt: '', bedrooms: '', children: '',
       housingType: '',
@@ -1034,22 +886,165 @@ function blankInspection() {
     bedrooms: [],    // { name }
     baths: [],       // { name }
     amenities: {},   // { groupId_itemId: true, groupId_other: 'text' }
-    summary: { result: '', notes: '' },
+    summary: { result: '', resultSource: '', notes: '' },
   };
 }
 
-function getAll() { try { return JSON.parse(localStorage.getItem('hqs_v2') || '[]'); } catch { return []; } }
-function saveAll(list) { localStorage.setItem('hqs_v2', JSON.stringify(list)); }
+// ── STORAGE INVARIANT (v2.0.0) ──────────────────────────────────────────────
+// getAll() is the NORMALIZED read API: every display, open, PDF, export, picker,
+// and copy-forward path reads through it. Persistence operations must instead
+// read the RAW collection via readStoredInspections() and may normalize ONLY the
+// record they intentionally create, update, or import — never the whole set.
+// Only saveInspectionToStore(), deleteInspection(), importJSON(), and
+// confirmClearAll() may call writeStoredInspections().
 
-function saveInspectionToStore(insp) {
-  const list = getAll();
-  const idx = list.findIndex(i => i.id === insp.id);
-  insp.updated = new Date().toISOString();
-  if (idx >= 0) list[idx] = insp; else list.unshift(insp);
-  saveAll(list);
+// Field templates used to fill gaps without overwriting existing values.
+const DEFAULT_INFO = {
+  address: '', city: '', cityName: '', state: '', zip: '', tenant: '', tenantId: '',
+  inspector: '', pha: '', dateInspection: '', dateRequest: '',
+  typeInspection: 'Initial', yearBuilt: '', bedrooms: '', children: '',
+  housingType: ''
+};
+const DEFAULT_OWNER = {
+  companyName: '', contactName: '', phone: '', email: '', address: ''
+};
+
+// Progressive phone formatter -> (999) 999-9999, matching DFWR/HUD-11.
+// Strips non-digits, caps at 10, formats partial input as typed, and leaves
+// anything that is not a full 10-digit number usable as entered.
+function formatPhone(value) {
+  const d = String(value == null ? '' : value).replace(/\D/g, '').slice(0, 10);
+  if (d.length < 4) return d;
+  if (d.length < 7) return '(' + d.slice(0, 3) + ') ' + d.slice(3);
+  return '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6);
 }
 
-function deleteInspection(id) { saveAll(getAll().filter(i => i.id !== id)); }
+
+// ── LOCATION HELPERS (Phase 2b) ─────────────────────────────────────────────
+// State: letters only, uppercase, max 2 (supports CA, NV, PR, GU; no fixed list).
+function sanitizeState(value) {
+  return String(value == null ? '' : value).replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 2);
+}
+// ZIP: digits only, max 5, kept as a string so leading zeros survive.
+function sanitizeZip(value) {
+  return String(value == null ? '' : value).replace(/\D/g, '').slice(0, 5);
+}
+// Parse a legacy "City, ST ZIP" / "City, ST ZIP-4" composite. Conservative:
+// returns null unless the whole string matches that exact shape.
+function parseCityStateZip(text) {
+  const m = String(text == null ? '' : text).trim()
+    .match(/^(.+?),\s*([A-Za-z]{2})\s+(\d{5})(?:-\d{4})?$/);
+  if (!m) return null;
+  return { cityName: m[1].trim(), state: m[2].toUpperCase(), zip: m[3] };
+}
+// Build "City, ST ZIP" from structured fields with no stray commas/spaces when
+// parts are missing. Falls back to the preserved legacy composite (info.city)
+// when no structured city/zip has been entered yet.
+function formatCityStateZip(info) {
+  info = info || {};
+  const city  = String(info.cityName || '').trim();
+  const state = String(info.state || '').trim();
+  const zip   = String(info.zip || '').trim();
+  if (city || zip) {
+    let out = city;
+    if (state) out += (out ? ', ' : '') + state;
+    if (zip)   out += (out ? ' ' : '')  + zip;
+    return out;
+  }
+  return String(info.city || '').trim();
+}
+// Full one-line property location: street + city line.
+function formatPropertyLocation(info) {
+  info = info || {};
+  return [String(info.address || '').trim(), formatCityStateZip(info)]
+    .filter(Boolean).join(', ');
+}
+// After a structured-field edit: resync the composite, refresh the header, and
+// drop the legacy hint once any structured location value exists.
+function syncLocation() {
+  if (!currentInspection) return;
+  const info = currentInspection.info;
+  info.city = formatCityStateZip(info);
+  updateHeader();
+  const hint = document.getElementById('legacyLocationHint');
+  if (hint) hint.style.display = (info.cityName || info.state || info.zip) ? 'none' : '';
+}
+
+// Raw collection exactly as stored — no normalization. Never returns non-arrays.
+function readStoredInspections() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('hqs_v2') || '[]');
+    return Array.isArray(stored) ? stored : [];
+  } catch (error) {
+    console.error('Unable to read stored inspections:', error);
+    return [];
+  }
+}
+
+// Normalized read API — returns current-schema copies, does NOT touch storage.
+function getAll() {
+  return readStoredInspections().map(normalizeInspection);
+}
+
+// The ONLY function that writes the whole collection. Guard its callers.
+function writeStoredInspections(list) {
+  localStorage.setItem('hqs_v2', JSON.stringify(list));
+}
+
+// Pure, idempotent normalizer. Uses SELECTIVE spreading: a new top-level object
+// plus cloned info/owner/summary only. checks/rooms/bedrooms/baths/amenities are
+// passed through by reference, so photo-heavy `checks` arrays are never deep-
+// copied. Existing values always win over defaults; unknown legacy fields are
+// preserved via the top-level spread.
+function normalizeInspection(raw) {
+  const r = (raw && typeof raw === 'object') ? raw : {};
+  const owner = { ...DEFAULT_OWNER, ...(r.owner || {}) };
+  owner.phone = formatPhone(owner.phone); // Phase 2: normalize legacy phone values
+  const info = { ...DEFAULT_INFO, ...(r.info || {}) };
+  // Phase 2b: derive structured City/State/ZIP from a legacy composite when the
+  // structured fields are absent and it parses cleanly; otherwise preserve the
+  // composite. info.city is then resynced (a no-op when unparsed).
+  if (!info.cityName && !info.state && !info.zip && info.city) {
+    const parsed = parseCityStateZip(info.city);
+    if (parsed) { info.cityName = parsed.cityName; info.state = parsed.state; info.zip = parsed.zip; }
+  }
+  info.city = formatCityStateZip(info);
+  const normalized = {
+    ...r,
+    schemaVersion: 3,
+    id:      r.id      || Date.now().toString(),
+    created: r.created || new Date().toISOString(),
+    updated: r.updated || new Date().toISOString(),
+    info,
+    owner,
+    checks:    (r.checks    && typeof r.checks    === 'object') ? r.checks    : {},
+    rooms:     Array.isArray(r.rooms)    ? r.rooms    : [],
+    bedrooms:  Array.isArray(r.bedrooms) ? r.bedrooms : [],
+    baths:     Array.isArray(r.baths)    ? r.baths    : [],
+    amenities: (r.amenities && typeof r.amenities === 'object') ? r.amenities : {},
+    summary:   { result: '', resultSource: '', notes: '', ...(r.summary || {}) }
+  };
+  // Phase 2d: derive the overall result from item failures on the copy. Runs
+  // through the normalized read path; persisted only when the record is saved.
+  syncOverallResult(normalized);
+  return normalized;
+}
+
+function saveInspectionToStore(insp) {
+  const stamp = new Date().toISOString();
+  insp.updated = stamp;                       // reflect on the working copy
+  const records = readStoredInspections();    // RAW: unrelated records untouched
+  const normalized = normalizeInspection(insp); // normalize ONLY this record
+  const idx = records.findIndex(i => i.id === normalized.id);
+  if (idx >= 0) records[idx] = normalized; else records.unshift(normalized);
+  writeStoredInspections(records);
+}
+
+function deleteInspection(id) {
+  writeStoredInspections(
+    readStoredInspections().filter(item => item.id !== id)
+  );
+}
 
 // ════════════════════════════════════════════════════════
 //  DASHBOARD
@@ -1065,10 +1060,10 @@ function renderDashboard() {
   const list = getAll();
   const el = document.getElementById('inspList');
   if (!list.length) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>No inspections yet.<br>Tap "+ New Inspection" to begin.</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon">${icon('checklist')}</div><p>No inspections yet.<br>Tap "+ New Inspection" to begin.</p></div>`;
   } else {
     el.innerHTML = list.map(insp => {
-      const addr = [insp.info.address, insp.info.city].filter(Boolean).join(', ') || 'No address';
+      const addr = formatPropertyLocation(insp.info) || 'No address';
       const tenantId = insp.info.tenantId ? `<span style="font-family:var(--mono);font-size:10px;color:var(--amber);margin-left:6px;opacity:0.85">#${esc(insp.info.tenantId)}</span>` : '';
       const phaTag = insp.info.pha ? `<span style="font-family:var(--mono);font-size:10px;color:#94a3b8;margin-left:6px">${esc(insp.info.pha)}</span>` : '';
       const inspDate = insp.info.dateInspection ? `Inspected: ${insp.info.dateInspection}` : '';
@@ -1090,9 +1085,9 @@ function renderDashboard() {
         </div>
         <div style="font-family:var(--mono);font-size:9px;color:#64748b;padding:2px 14px 8px">${savedDate}</div>
         <div class="insp-card-actions">
-          <button class="btn-sm btn-open" onclick="openInspection('${insp.id}')">Open</button>
-          <button class="btn-sm btn-print" onclick="printFromDash('${insp.id}')">Print</button>
-          <button class="btn-sm btn-del" onclick="confirmDelete('${insp.id}')">Delete</button>
+          <button class="btn-sm btn-open" onclick="openInspection('${insp.id}')">${icon('open')}<span>Open</span></button>
+          <button class="btn-sm btn-print" onclick="generateHqsPdfById('${insp.id}')">${icon('pdf')}<span>Print</span></button>
+          <button class="btn-sm btn-del" onclick="confirmDelete('${insp.id}')">${icon('delete')}<span>Delete</span></button>
         </div>
       </div>`;
     }).join('');
@@ -1117,7 +1112,7 @@ function updateStorageMeter() {
     }
     if (label) {
       const kb = Math.round(usedBytes / 1024);
-      const count = getAll().length;
+      const count = readStoredInspections().length;
       label.textContent = `${kb} KB · ${count} inspection${count !== 1 ? 's' : ''} · ${pct}% full`;
     }
   } catch(e) {}
@@ -1141,7 +1136,7 @@ function exportSinglePrompt() {
   if (!list.length) { showToast('No inspections saved'); return; }
   // Build a quick picker modal
   const opts = list.map((insp, i) => {
-    const addr = [insp.info.address, insp.info.city].filter(Boolean).join(', ') || 'No address';
+    const addr = formatPropertyLocation(insp.info) || 'No address';
     const date = insp.info.dateInspection || fmtDate(insp.created);
     return `<button onclick="exportOne('${insp.id}')" style="width:100%;text-align:left;padding:12px 14px;background:none;border:none;border-bottom:1px solid #e2e8f0;cursor:pointer;font-size:13px;font-family:inherit">
       <strong>${addr}</strong><br>
@@ -1257,7 +1252,7 @@ function importJSON(input) {
   reader.onload = function(e) {
     try {
       const data = JSON.parse(e.target.result);
-      const list = getAll();
+      const list = readStoredInspections();
       // Handle both single inspection and array backup
       const incoming = Array.isArray(data) ? data : [data];
       let added = 0, skipped = 0;
@@ -1268,18 +1263,18 @@ function importJSON(input) {
         const exists = list.findIndex(i => i.id === insp.id);
         if (exists >= 0) {
           // Ask before overwriting — note the id and prompt
-          if (confirm(`"${[insp.info.address, insp.info.city].filter(Boolean).join(', ') || 'Unnamed'}" already exists. Overwrite with imported version?`)) {
-            list[exists] = insp;
+          if (confirm(`"${formatPropertyLocation(insp.info) || 'Unnamed'}" already exists. Overwrite with imported version?`)) {
+            list[exists] = normalizeInspection(insp);
             added++;
           } else {
             skipped++;
           }
         } else {
-          list.unshift(insp);
+          list.unshift(normalizeInspection(insp));
           added++;
         }
       });
-      saveAll(list);
+      writeStoredInspections(list);
       renderDashboard();
       showToast(`Imported ${added} inspection${added !== 1 ? 's' : ''}${skipped ? ` · ${skipped} skipped` : ''} ✓`);
     } catch(err) {
@@ -1291,10 +1286,10 @@ function importJSON(input) {
 }
 
 function confirmClearAll() {
-  const list = getAll();
+  const list = readStoredInspections();
   if (!list.length) { showToast('Nothing to clear'); return; }
-  if (confirm(`⚠️ Delete ALL ${list.length} saved inspection${list.length !== 1 ? 's' : ''}?\n\nThis cannot be undone. Export a backup first if needed.`)) {
-    saveAll([]);
+  if (confirm(`Delete ALL ${list.length} saved inspection${list.length !== 1 ? 's' : ''}?\n\nThis cannot be undone. Export a backup first if needed.`)) {
+    writeStoredInspections([]);
     renderDashboard();
     showToast('All inspections cleared');
   }
@@ -1316,11 +1311,11 @@ function copyForwardPrompt() {
   if (!list.length) { showToast('No saved inspections to copy from'); return; }
 
   const opts = list.map(insp => {
-    const addr = [insp.info.address, insp.info.city].filter(Boolean).join(', ') || 'No address';
+    const addr = formatPropertyLocation(insp.info) || 'No address';
     const date = insp.info.dateInspection || fmtDate(insp.created);
     const unitId = insp.info.tenantId ? `<span style="font-family:var(--mono);font-size:10px;color:#f59e0b;margin-left:6px">#${esc(insp.info.tenantId)}</span>` : '<span style="font-family:var(--mono);font-size:10px;color:#94a3b8;margin-left:6px">No unit ID</span>';
     return `<button onclick="copyForward('${insp.id}')" style="width:100%;text-align:left;padding:12px 14px;background:none;border:none;border-bottom:1px solid #e2e8f0;cursor:pointer;font-family:inherit">
-      <div style="font-size:13px;font-weight:600;color:#0f1923">${addr}${unitId}</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text)">${addr}${unitId}</div>
       <div style="font-size:11px;color:#64748b;margin-top:2px">${date} · ${insp.info.typeInspection||'Initial'} · ${insp.summary.result||'Draft'}</div>
     </button>`;
   }).join('');
@@ -1341,7 +1336,7 @@ function copyForward(sourceId) {
   // Check if any copied-forward sections have fails — warn inspector
   const hasFails = checkCopyForwardFails(source);
   if (hasFails) {
-    if (!confirm(`⚠️ The selected inspection has failed items in the building sections being copied forward.\n\nThese failures and their comments/photos will carry over. Review and update them as needed after copying.\n\nProceed?`)) return;
+    if (!confirm(`The selected inspection has failed items in the building sections being copied forward.\n\nThese failures and their comments/photos will carry over. Review and update them as needed after copying.\n\nProceed?`)) return;
   }
 
   // Start from a blank inspection
@@ -1350,11 +1345,15 @@ function copyForward(sourceId) {
   // ── Copy property info (exclude unit-specific fields)
   fresh.info.address     = source.info.address;
   fresh.info.city        = source.info.city;
+  fresh.info.cityName    = source.info.cityName;
+  fresh.info.state       = source.info.state;
+  fresh.info.zip         = source.info.zip;
   fresh.info.pha         = source.info.pha;
   fresh.info.yearBuilt   = source.info.yearBuilt;
   fresh.info.housingType = source.info.housingType;
   fresh.info.inspector   = source.info.inspector;   // same inspector, multiple units
-  // Tenant, dates, bedrooms, children, typeInspection stay blank / default
+  fresh.info.dateRequest = source.info.dateRequest;  // Phase 2e: carry the request date
+  // Tenant, Date of Inspection, bedrooms, children, typeInspection stay blank / default
   fresh.info.typeInspection = 'Initial';
 
   // ── Copy entire owner/property management block
@@ -1374,9 +1373,19 @@ function copyForward(sourceId) {
     }
   });
 
+  // Phase 2e: also carry the Egress "Interior stairs and handrails" item
+  // (egress_stairs_rails_int — building-wide, not part of the health_safety list).
+  if (source.checks['egress_stairs_rails_int']) {
+    fresh.checks['egress_stairs_rails_int'] =
+      JSON.parse(JSON.stringify(source.checks['egress_stairs_rails_int']));
+  }
+
+  // Phase 2e: a copied Fail must force the new inspection's overall result to Fail.
+  syncOverallResult(fresh);
+
   currentInspection = fresh;
   showInspection();
-  showToast('Copied forward from ' + ([source.info.address, source.info.city].filter(Boolean).join(', ') || 'previous inspection'));
+  showToast('Copied forward from ' + (formatPropertyLocation(source.info) || 'previous inspection'));
 }
 
 function copyCheckSection(source, dest, sectionId) {
@@ -1414,10 +1423,10 @@ function showModal(title, bodyHTML) {
     document.body.appendChild(m);
   }
   m.innerHTML = `
-    <div style="background:white;width:100%;border-radius:16px 16px 0 0;max-height:80vh;overflow-y:auto">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #e2e8f0">
-        <span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#0f1923">${title}</span>
-        <button onclick="closeModal()" style="background:none;border:none;font-size:22px;color:#94a3b8;cursor:pointer;padding:0 4px">✕</button>
+    <div style="background:var(--surface);width:100%;border-radius:16px 16px 0 0;max-height:80vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)">
+        <span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text)">${title}</span>
+        <button class="modal-close" onclick="closeModal()" aria-label="Close" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:0 4px">${icon('close')}</button>
       </div>
       ${bodyHTML}
     </div>`;
@@ -1436,6 +1445,40 @@ function confirmDelete(id) {
 
 function countFails(insp) {
   return Object.values(insp.checks || {}).filter(v => v.result === 'Fail').length;
+}
+
+// Automatic overall result (Phase 2d). Fail is the only derivable result.
+//   - Any item Fail forces summary.result = 'Fail' (source 'auto'), unless a
+//     Fail is already recorded (auto or manual), which is kept.
+//   - When no item Fail remains, an AUTO Fail is cleared back to Pending; a
+//     manual Fail (or any Pass / Inconclusive / blank) is preserved.
+// Pass and Inconclusive are never auto-assigned. Mutates the given inspection.
+function syncOverallResult(inspection) {
+  if (!inspection) return inspection;
+  const s = inspection.summary || (inspection.summary = { result: '', resultSource: '', notes: '' });
+  // Legacy backfill: a stored result with no source was inspector-selected.
+  if (s.result && !s.resultSource) s.resultSource = 'manual';
+  const hasFail = countFails(inspection) > 0;
+  if (hasFail) {
+    if (s.result !== 'Fail') { s.result = 'Fail'; s.resultSource = 'auto'; }
+  } else if (s.result === 'Fail' && s.resultSource === 'auto') {
+    s.result = '';
+    s.resultSource = '';
+  }
+  return inspection;
+}
+
+// Re-assert the summary buttons' active state from the current result.
+function refreshSummaryUI() {
+  if (!currentInspection) return;
+  const result = currentInspection.summary.result;
+  document.querySelectorAll('.sum-btn').forEach(b => {
+    b.classList.toggle('active',
+      (result==='Pass' && b.classList.contains('pass')) ||
+      (result==='Fail' && b.classList.contains('fail')) ||
+      (result==='Inconclusive' && b.classList.contains('inc'))
+    );
+  });
 }
 
 function fmtDate(iso) {
@@ -1464,9 +1507,11 @@ function openInspection(id) {
 }
 
 function showInspection() {
+  collapsedSections.clear();   // Phase 3a: reset collapse state per record
   document.getElementById('dashboard').classList.remove('active');
   document.getElementById('inspection').classList.add('active');
   renderForm();
+  installStickyListener();
 }
 
 function goBack() {
@@ -1477,16 +1522,137 @@ function goBack() {
 // ════════════════════════════════════════════════════════
 //  FORM RENDERING
 // ════════════════════════════════════════════════════════
+// ── COLLAPSIBLE SECTIONS (Phase 3a) ─────────────────────────────────────────
+// Session-only collapse state; never stored in hqs_v2 or exported JSON.
+const collapsedSections = new Set();
+
+// Full-width, keyboard-accessible section header. The body is the button's
+// following siblings; CSS hides them when the button carries .collapsed, so
+// toggling never re-renders or discards entered values.
+// ── LCS ICONS (Phase 3b) ────────────────────────────────────────────────────
+// Graceful degradation: if the registry is missing, labels still render.
+function icon(name, extraClass = '') {
+  if (window.LCSIcons && typeof window.LCSIcons.render === 'function') {
+    return window.LCSIcons.render(name, extraClass);
+  }
+  return '';
+}
+// Fill static (non-template) markup with icons once, on load.
+function hydrateStaticIcons() {
+  document.querySelectorAll('[data-lcs]').forEach(el => { el.innerHTML = icon(el.dataset.lcs); });
+}
+// Section id -> registry icon (app UI only; PDF keeps its own emoji fields).
+const BUILDING_ICON = { exterior: 'building-exterior', plumbing_heating: 'heating-plumbing', health_safety: 'health-safety', egress: 'egress-fire' };
+const AMENITY_ICON  = { living_room: 'living-room', kitchen: 'kitchen', other_rooms: 'other-room', bath: 'bathroom', overall: 'property', accessibility: 'accessibility' };
+
+function secOpen(id, headInner) {
+  const collapsed = collapsedSections.has(id);
+  return `<div class="form-card" id="section_${id}">
+    <button type="button" class="card-header sec-toggle${collapsed ? ' collapsed' : ''}" data-sec="${id}" aria-expanded="${!collapsed}" aria-controls="section_${id}" onclick="toggleSection('${id}', this)">
+      ${headInner}
+      ${sectionBadge(id)}
+      ${icon('forward', 'collapse-arrow')}
+    </button>`;
+}
+
+// Check keys belonging to a section, for its completion / fail badge.
+function sectionCheckKeys(id, ci) {
+  if (id === 'living_room') return ROOM_ITEMS.map(i => 'living_room_' + i.id);
+  if (id === 'kitchen')     return KITCHEN_ITEMS.map(i => 'kitchen_' + i.id);
+  if (id === 'bedrooms')   { const k=[]; (ci.bedrooms||[]).forEach((b,x)=>BEDROOM_ITEMS.forEach(i=>k.push('bed_'+x+'_'+i.id)));  return k; }
+  if (id === 'bathrooms')  { const k=[]; (ci.baths||[]).forEach((b,x)=>BATH_ITEMS.forEach(i=>k.push('bath_'+x+'_'+i.id)));      return k; }
+  if (id === 'other_rooms'){ const k=[]; (ci.rooms||[]).forEach((r,x)=>ROOM_ITEMS.forEach(i=>k.push('room_'+x+'_'+i.id)));      return k; }
+  const sec = BUILDING_CHECKLIST.find(s => s.id === id);
+  return sec ? sec.items.map(i => id + '_' + i.id) : [];
+}
+
+// Section status badge. A fail badge stays visible while collapsed because it
+// lives inside the always-visible header button.
+function sectionBadge(id) {
+  const ci = currentInspection;
+  if (!ci) return '';
+  const keys = sectionCheckKeys(id, ci);
+  if (!keys.length) return '';
+  let done = 0, fails = 0;
+  keys.forEach(k => { const r = (ci.checks[k] || {}).result; if (r) done++; if (r === 'Fail') fails++; });
+  if (fails > 0)            return `<span class="sec-badge fail">${fails} Fail</span>`;
+  if (done === keys.length) return `<span class="sec-badge done">Complete</span>`;
+  return `<span class="sec-badge">${done} / ${keys.length}</span>`;
+}
+
+// Toggle one section — pure DOM + state, no re-render, so data is safe.
+function toggleSection(id, btn) {
+  const collapsed = btn.classList.toggle('collapsed');
+  btn.setAttribute('aria-expanded', String(!collapsed));
+  if (collapsed) collapsedSections.add(id); else collapsedSections.delete(id);
+}
+function expandAll() {
+  collapsedSections.clear();
+  document.querySelectorAll('.sec-toggle').forEach(b => { b.classList.remove('collapsed'); b.setAttribute('aria-expanded','true'); });
+  updateStickySection();
+}
+function collapseAll() {
+  document.querySelectorAll('.sec-toggle').forEach(b => { b.classList.add('collapsed'); b.setAttribute('aria-expanded','false'); collapsedSections.add(b.dataset.sec); });
+  updateStickySection();
+}
+// Force a section open (used when a bedroom/bath/room is added into it).
+function expandSection(id) {
+  collapsedSections.delete(id);
+  const b = document.querySelector('.sec-toggle[data-sec="' + id + '"]');
+  if (b) { b.classList.remove('collapsed'); b.setAttribute('aria-expanded','true'); }
+}
+
+// ── Sticky current-section label. One scroll listener, removed before re-adding.
+let _stickyHandler = null;
+function stickyOffset() {
+  const header = document.querySelector('#inspection .form-header');
+  return header ? header.offsetHeight : 0;
+}
+function updateStickySection() {
+  const label = document.getElementById('stickySection');
+  if (!label) return;
+  const cut = stickyOffset() + 4;
+  let current = '';
+  document.querySelectorAll('#formBody .sec-toggle').forEach(btn => {
+    if (btn.getBoundingClientRect().top <= cut) {
+      const h3 = btn.querySelector('h3');
+      current = h3 ? h3.textContent.trim() : '';
+    }
+  });
+  label.textContent = current;
+  label.style.top = stickyOffset() + 'px';
+  label.style.display = current ? 'block' : 'none';
+}
+function installStickyListener() {
+  if (_stickyHandler) window.removeEventListener('scroll', _stickyHandler);
+  _stickyHandler = () => updateStickySection();
+  window.addEventListener('scroll', _stickyHandler, { passive: true });
+  updateStickySection();
+}
+
 function renderForm() {
   const ci = currentInspection;
   let html = '';
 
+  html += `<div class="sec-controls">
+    <button type="button" class="sec-ctl-btn" onclick="expandAll()">Expand All</button>
+    <button type="button" class="sec-ctl-btn" onclick="collapseAll()">Collapse All</button>
+  </div>
+  <div id="stickySection" class="sticky-section" style="display:none"></div>`;
+
   // ── PROPERTY INFO
-  html += `<div class="form-card">
-    <div class="card-header"><h3>📍 Property &amp; Inspection Info</h3></div>
+  html += `${secOpen('property', `<h3>${icon('property')}<span>Property &amp; Inspection Info</span></h3>`)}
     <div class="info-grid">
       <div class="field full"><label>Property Address</label><input type="text" value="${esc(ci.info.address)}" oninput="currentInspection.info.address=this.value;updateHeader()" placeholder="Street address"></div>
-      <div class="field full"><label>City / State / ZIP</label><input type="text" value="${esc(ci.info.city)}" oninput="currentInspection.info.city=this.value;updateHeader()" placeholder="City, State ZIP"></div>
+      <div style="grid-column:1/-1;padding:12px 14px;border-bottom:1px solid var(--border)">
+        <label style="display:block;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--gray);margin-bottom:5px">City / State / ZIP</label>
+        <div class="location-grid">
+          <input type="text" value="${esc(ci.info.cityName)}" placeholder="City" oninput="currentInspection.info.cityName=this.value;syncLocation()">
+          <input type="text" maxlength="2" inputmode="text" autocomplete="address-level1" autocapitalize="characters" spellcheck="false" value="${esc(ci.info.state)}" placeholder="ST" oninput="currentInspection.info.state=sanitizeState(this.value);this.value=currentInspection.info.state;syncLocation()">
+          <input type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5" pattern="[0-9]{5}" value="${esc(ci.info.zip)}" placeholder="ZIP" oninput="currentInspection.info.zip=sanitizeZip(this.value);this.value=currentInspection.info.zip;syncLocation()">
+        </div>
+        ${(!ci.info.cityName && !ci.info.state && !ci.info.zip && ci.info.city) ? `<div class="field-hint" id="legacyLocationHint" style="margin-top:6px">Previous entry: ${esc(ci.info.city)}</div>` : ''}
+      </div>
       <div class="field"><label>Tenant Name</label><input type="text" value="${esc(ci.info.tenant)}" oninput="currentInspection.info.tenant=this.value" placeholder=""></div>
       <div class="field"><label>Tenant ID #</label><input type="text" value="${esc(ci.info.tenantId)}" oninput="currentInspection.info.tenantId=this.value" placeholder=""></div>
       <div class="field"><label>Inspector</label><input type="text" value="${esc(ci.info.inspector)}" oninput="currentInspection.info.inspector=this.value" placeholder=""></div>
@@ -1512,41 +1678,37 @@ function renderForm() {
   </div>`;
 
   // ── OWNER / PROPERTY MANAGEMENT
-  html += `<div class="form-card">
-    <div class="card-header"><h3>🏢 Owner / Property Management</h3></div>
+  html += `${secOpen('owner', `<h3>${icon('property-management')}<span>Owner / Property Management</span></h3>`)}
     <div class="info-grid">
       <div class="field full"><label>Company / Organization Name</label><input type="text" value="${esc(ci.owner.companyName)}" oninput="currentInspection.owner.companyName=this.value" placeholder="Property management company or owner name"></div>
       <div class="field"><label>Contact Name</label><input type="text" value="${esc(ci.owner.contactName)}" oninput="currentInspection.owner.contactName=this.value" placeholder="Agent or owner"></div>
-      <div class="field"><label>Phone</label><input type="tel" value="${esc(ci.owner.phone)}" oninput="currentInspection.owner.phone=this.value" placeholder=""></div>
+      <div class="field"><label>Phone</label><input type="tel" inputmode="tel" autocomplete="tel" maxlength="14" value="${esc(ci.owner.phone)}" oninput="currentInspection.owner.phone=formatPhone(this.value);this.value=currentInspection.owner.phone" placeholder="(555) 555-5555"></div>
       <div class="field full"><label>Email</label><input type="email" value="${esc(ci.owner.email)}" oninput="currentInspection.owner.email=this.value" placeholder=""></div>
       <div class="field full"><label>Mailing Address</label><input type="text" value="${esc(ci.owner.address)}" oninput="currentInspection.owner.address=this.value" placeholder="Street, City, State ZIP"></div>
     </div>
   </div>`;
 
   // ── LIVING ROOM (fixed)
-  html += renderAreaCard('living_room', '🛋 Living Room', ROOM_ITEMS, ci);
+  html += renderAreaCard('living_room', icon('living-room') + '<span>Living Room</span>', ROOM_ITEMS, ci);
 
   // ── KITCHEN (fixed)
-  html += renderAreaCard('kitchen', '🍳 Kitchen', KITCHEN_ITEMS, ci);
+  html += renderAreaCard('kitchen', icon('kitchen') + '<span>Kitchen</span>', KITCHEN_ITEMS, ci);
 
   // ── DYNAMIC BEDROOMS
   if (!ci.bedrooms) ci.bedrooms = [];
-  html += `<div class="form-card" style="margin-top:12px">
-    <div class="card-header"><h3>🛏 Bedrooms</h3><span style="font-size:10px;color:var(--gray);font-family:var(--mono)">AFCI · egress · closet</span></div>
+  html += `${secOpen('bedrooms', `<h3>${icon('bedroom')}<span>Bedrooms</span></h3><span style="font-size:10px;color:var(--gray);font-family:var(--mono)">AFCI · egress · closet</span>`)}
     <div id="bedsContainer">${ci.bedrooms.map((b,i) => renderBedroomBlock(b,i,ci)).join('')}</div>
   </div>
-  <button class="btn-add-area" onclick="addBedroom()">+ Add Bedroom</button>`;
+  <button class="btn-add-area" onclick="addBedroom()">${icon('add')}<span>Add Bedroom</span></button>`;
 
   // ── DYNAMIC BATHROOMS
-  html += `<div class="form-card" style="margin-top:12px">
-    <div class="card-header"><h3>🚿 Bathrooms</h3></div>
+  html += `${secOpen('bathrooms', `<h3>${icon('bathroom')}<span>Bathrooms</span></h3>`)}
     <div id="bathsContainer">${ci.baths.map((b,i) => renderBathBlock(b,i,ci)).join('')}</div>
   </div>
-  <button class="btn-add-area" onclick="addBath()">+ Add Bathroom</button>`;
+  <button class="btn-add-area" onclick="addBath()">${icon('add')}<span>Add Bathroom</span></button>`;
 
   // ── DYNAMIC OTHER ROOMS (with room codes) — after bathrooms
-  html += `<div class="form-card" style="margin-top:12px">
-    <div class="card-header"><h3>🚪 Other Rooms &amp; Areas</h3><span style="font-size:10px;color:var(--gray);font-family:var(--mono)">Hallways, dining, patio, etc.</span></div>
+  html += `${secOpen('other_rooms', `<h3>${icon('other-room')}<span>Other Rooms &amp; Areas</span></h3><span style="font-size:10px;color:var(--gray);font-family:var(--mono)">Hallways, dining, patio, etc.</span>`)}
     <div style="padding:10px 14px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:11px;color:#64748b;line-height:1.7">
       <strong style="font-family:var(--mono);font-size:10px">ROOM CODES:</strong><br>
       1 = Bedroom/Sleeping Room &nbsp;|&nbsp; 2 = Dining Room/Area &nbsp;|&nbsp; 3 = Family Room/Den/Playroom<br>
@@ -1554,7 +1716,7 @@ function renderForm() {
     </div>
     <div id="roomsContainer">${ci.rooms.map((r,i) => renderRoomBlock(r,i,ci)).join('')}</div>
   </div>
-  <button class="btn-add-area" onclick="addRoom()">+ Add Other Room / Area</button>`;
+  <button class="btn-add-area" onclick="addRoom()">${icon('add')}<span>Add Other Room / Area</span></button>`;
 
   // ── BUILDING-WIDE SECTIONS
   BUILDING_CHECKLIST.forEach(section => { html += renderBuildingSection(section, ci); });
@@ -1564,8 +1726,7 @@ function renderForm() {
 
   // ── SUMMARY
   const fc = countFails(ci);
-  html += `<div class="form-card" style="margin-top:12px">
-    <div class="card-header"><h3>📊 Summary &amp; Decision</h3></div>
+  html += `${secOpen('summary', `<h3>${icon('summary')}<span>Summary &amp; Decision</span></h3>`)}
     <div class="fail-count${fc>0?' visible':''}" id="failCount">
       <div class="fail-count-num">${fc}</div>
       <div class="fail-count-label">Failed item${fc!==1?'s':''} — review before completing</div>
@@ -1573,9 +1734,9 @@ function renderForm() {
     <div class="summary-result">
       <div style="font-size:11px;font-weight:600;font-family:var(--mono);color:#64748b;margin-bottom:10px;letter-spacing:0.08em">OVERALL RESULT</div>
       <div class="summary-btns">
-        <button class="sum-btn pass${ci.summary.result==='Pass'?' active':''}" onclick="setSummary('Pass')">✓ Pass</button>
-        <button class="sum-btn fail${ci.summary.result==='Fail'?' active':''}" onclick="setSummary('Fail')">✗ Fail</button>
-        <button class="sum-btn inc${ci.summary.result==='Inconclusive'?' active':''}" onclick="setSummary('Inconclusive')">? Inconcl.</button>
+        <button class="sum-btn pass${ci.summary.result==='Pass'?' active':''}" onclick="setSummary('Pass')">${icon('pass')}<span>Pass</span></button>
+        <button class="sum-btn fail${ci.summary.result==='Fail'?' active':''}" onclick="setSummary('Fail')">${icon('fail')}<span>Fail</span></button>
+        <button class="sum-btn inc${ci.summary.result==='Inconclusive'?' active':''}" onclick="setSummary('Inconclusive')">${icon('inconclusive')}<span>Inconcl.</span></button>
       </div>
     </div>
     <div class="check-item">
@@ -1587,20 +1748,19 @@ function renderForm() {
   document.getElementById('formBody').innerHTML = html;
   updateHeader();
   updateProgress();
+  updateStickySection();
 }
 
 function renderAreaCard(prefix, title, items, ci) {
   const itemsHtml = items.map(item => renderCheckItem(prefix + '_' + item.id, item, ci)).join('');
-  return `<div class="form-card" style="margin-top:12px">
-    <div class="card-header"><h3>${title}</h3></div>
+  return `${secOpen(prefix, `<h3>${title}</h3>`)}
     ${itemsHtml}
   </div>`;
 }
 
 function renderBuildingSection(section, ci) {
   const items = section.items.map(item => renderCheckItem(section.id + '_' + item.id, item, ci)).join('');
-  return `<div class="form-card" style="margin-top:12px">
-    <div class="card-header"><h3>${section.icon} ${section.title}</h3></div>
+  return `${secOpen(section.id, `<h3>${icon(BUILDING_ICON[section.id] || 'checklist')}<span>${section.title}</span></h3>`)}
     ${items}
   </div>`;
 }
@@ -1614,16 +1774,36 @@ function renderCheckItem(key, item, ci) {
   const isFail = result === 'Fail';
   const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
 
-  const typeFieldHtml = item.typeField ? `
+  const windowMaterial = check.windowMaterial || '';
+  const windowType = check.windowType || '';
+  let typeFieldHtml = '';
+  if (item.id === 'window') {
+    const matOpts = ['<option value="">Select material</option>'].concat(
+      WINDOW_MATERIALS.map(m => `<option value="${esc(m)}"${windowMaterial === m ? ' selected' : ''}>${esc(m)}</option>`)).join('');
+    const typeOpts = ['<option value="">Select type</option>'].concat(
+      WINDOW_TYPES.map(t => `<option value="${esc(t)}"${windowType === t ? ' selected' : ''}>${esc(t)}</option>`)).join('');
+    const showWinHint = !windowMaterial && !windowType && typeVal;
+    typeFieldHtml = `
+    <div class="window-fields">
+      <div><label>Window Material</label>
+        <select onchange="setWindowField('${key}','windowMaterial',this.value)">${matOpts}</select></div>
+      <div><label>Window Type</label>
+        <select onchange="setWindowField('${key}','windowType',this.value)">${typeOpts}</select></div>
+    </div>
+    <div class="window-note">Note single-, double-, or triple-pane glazing in Comments when applicable.</div>
+    ${showWinHint ? `<div class="window-note" id="winhint_${safeKey}">Previous entry: ${esc(typeVal)}</div>` : ''}`;
+  } else if (item.typeField) {
+    typeFieldHtml = `
     <div class="type-field-row">
       <label>${item.typeField}</label>
       <input type="text" value="${esc(typeVal)}" placeholder="${esc(item.typePlaceholder||'')}" oninput="setTypeVal('${key}',this.value)">
-    </div>` : '';
+    </div>`;
+  }
 
   const thumbsHtml = photos.map((src, pi) =>
     `<div class="photo-thumb-wrap">
       <img class="photo-thumb" src="${src}" alt="photo">
-      <button class="photo-thumb-del" onclick="removePhoto('${key}',${pi})" title="Remove">✕</button>
+      <button class="photo-thumb-del" onclick="removePhoto('${key}',${pi})" title="Remove" aria-label="Remove photo">${icon('close')}</button>
     </div>`
   ).join('');
 
@@ -1631,7 +1811,7 @@ function renderCheckItem(key, item, ci) {
     <div class="photo-row" id="photorow_${safeKey}">
       ${thumbsHtml}
       <button class="btn-add-photo" onclick="document.getElementById('photoinput_${safeKey}').click()">
-        📷<span>Photo</span>
+        ${icon('camera')}<span>Photo</span>
       </button>
       <input class="photo-input" type="file" id="photoinput_${safeKey}" accept="image/*" capture="environment" onchange="addPhoto('${key}',this)">
     </div>`;
@@ -1663,7 +1843,7 @@ function renderRoomBlock(room, idx, ci) {
         <option value="">Select code…</option>${codeOptions}
       </select>
       <input type="text" value="${esc(room.name||'')}" placeholder="Room name (optional)" oninput="updateRoomName(${idx},this.value)">
-      <button class="btn-remove-area" onclick="removeRoom(${idx})">✕</button>
+      <button class="btn-remove-area" onclick="removeRoom(${idx})" aria-label="Remove room">${icon('remove')}</button>
     </div>
     ${items}
   </div>`;
@@ -1675,7 +1855,7 @@ function renderBedroomBlock(bed, idx, ci) {
     <div class="area-block-header">
       <span class="rc-badge">BED ${idx+1}</span>
       <input type="text" value="${esc(bed.name||'')}" placeholder="e.g. Primary, Bedroom 2, Den" oninput="updateBedName(${idx},this.value)">
-      <button class="btn-remove-area" onclick="removeBedroom(${idx})">✕</button>
+      <button class="btn-remove-area" onclick="removeBedroom(${idx})" aria-label="Remove bedroom">${icon('remove')}</button>
     </div>
     ${items}
   </div>`;
@@ -1690,6 +1870,7 @@ function addBedroom() {
   const div = document.createElement('div');
   div.innerHTML = renderBedroomBlock(ci.bedrooms[idx], idx, ci);
   container.appendChild(div.firstElementChild);
+  expandSection('bedrooms');
 }
 
 function removeBedroom(idx) {
@@ -1715,7 +1896,7 @@ function renderBathBlock(bath, idx, ci) {
     <div class="area-block-header">
       <span class="rc-badge">BATH ${idx+1}</span>
       <input type="text" value="${esc(bath.name||'')}" placeholder="e.g. Primary Bath, Full Bath, Half Bath" oninput="updateBathName(${idx},this.value)">
-      <button class="btn-remove-area" onclick="removeBath(${idx})">✕</button>
+      <button class="btn-remove-area" onclick="removeBath(${idx})" aria-label="Remove bathroom">${icon('remove')}</button>
     </div>
     ${items}
   </div>`;
@@ -1726,7 +1907,7 @@ function renderBathBlock(bath, idx, ci) {
 // ════════════════════════════════════════════════════════
 function updateHeader() {
   const ci = currentInspection;
-  const addr = [ci.info.address, ci.info.city].filter(Boolean).join(', ') || 'New Inspection';
+  const addr = formatPropertyLocation(ci.info) || 'New Inspection';
   document.getElementById('headerAddr').textContent = addr;
 }
 
@@ -1763,6 +1944,8 @@ function setResult(key, result) {
   container.classList.toggle('is-fail', isFail);
   updateProgress();
   updateFailCount();
+  syncOverallResult(currentInspection);   // Phase 2d: re-derive overall result
+  refreshSummaryUI();
 }
 
 function setComment(key, val) {
@@ -1775,15 +1958,28 @@ function setTypeVal(key, val) {
   currentInspection.checks[key].typeVal = val;
 }
 
+// Window Material / Type (Phase 2c): store the selection and rebuild the merged
+// typeVal compatibility value; drop the legacy "Previous entry" hint once set.
+function setWindowField(key, field, val) {
+  const ci = currentInspection;
+  if (!ci.checks[key]) ci.checks[key] = {};
+  ci.checks[key][field] = val;
+  ci.checks[key].typeVal = [ci.checks[key].windowMaterial, ci.checks[key].windowType].filter(Boolean).join(' / ');
+  const hint = document.getElementById('winhint_' + key.replace(/[^a-zA-Z0-9_-]/g, '_'));
+  if (hint) hint.style.display = (ci.checks[key].windowMaterial || ci.checks[key].windowType) ? 'none' : '';
+}
+
 function setSummary(result) {
-  currentInspection.summary.result = result;
-  document.querySelectorAll('.sum-btn').forEach(b => {
-    b.classList.toggle('active',
-      (result==='Pass' && b.classList.contains('pass')) ||
-      (result==='Fail' && b.classList.contains('fail')) ||
-      (result==='Inconclusive' && b.classList.contains('inc'))
-    );
-  });
+  const ci = currentInspection;
+  // Phase 2d: block Pass / Inconclusive while unresolved failures exist.
+  if ((result === 'Pass' || result === 'Inconclusive') && countFails(ci) > 0) {
+    showToast('Resolve all failed items before selecting Pass or Inconclusive.');
+    refreshSummaryUI();   // re-assert the enforced Fail state
+    return;
+  }
+  ci.summary.result = result;
+  ci.summary.resultSource = 'manual';
+  refreshSummaryUI();
 }
 
 function addRoom() {
@@ -1793,6 +1989,7 @@ function addRoom() {
   const div = document.createElement('div');
   div.innerHTML = renderRoomBlock(ci.rooms[idx], idx, ci);
   document.getElementById('roomsContainer').appendChild(div.firstElementChild);
+  expandSection('other_rooms');
 }
 
 function removeRoom(idx) {
@@ -1817,6 +2014,7 @@ function addBath() {
   const div = document.createElement('div');
   div.innerHTML = renderBathBlock(ci.baths[idx], idx, ci);
   document.getElementById('bathsContainer').appendChild(div.firstElementChild);
+  expandSection('bathrooms');
 }
 
 function removeBath(idx) {
@@ -1875,297 +2073,29 @@ function showToast(msg) {
 // ════════════════════════════════════════════════════════
 //  PRINT
 // ════════════════════════════════════════════════════════
-function printFromDash(id) {
-  const insp = getAll().find(i => i.id === id);
-  if (insp) { currentInspection = insp; _printOrigin = 'dashboard'; printInspection(); }
-}
 
-function printInspection() {
-  if (_printOrigin !== 'dashboard') _printOrigin = 'form';
-  const ci = currentInspection;
-  const addr = [ci.info.address, ci.info.city].filter(Boolean).join(', ') || 'No address';
-  const allFails = getAllFails(ci);
-
-  // ── All photos collected across entire report for the appendix
-  const allPhotos = [];
-
-  // ── Build a section table (skip items with no result to keep it clean)
-  function buildTable(prefix, items, label) {
-    const rows = items.map(item => {
-      const key = prefix + '_' + item.id;
-      const check = ci.checks[key] || {};
-      const r = check.result || '';
-      if (!r && !check.typeVal && !check.comment) return '';
-      const cls = r === 'Pass' ? 'pass' : r === 'Fail' ? 'fail' : 'na';
-      const rowCls = r === 'Fail' ? 'fail-row' : r === 'N/A' ? 'na-row' : '';
-      const typeStr = (item.typeField && check.typeVal)
-        ? `<div style="font-size:9px;color:#475569;margin-bottom:2px"><strong>${item.typeField}:</strong> ${esc(check.typeVal)}</div>`
-        : '';
-      return `<tr class="${rowCls}">
-        <td class="pv-col-item">${typeStr}${item.label}</td>
-        <td class="pv-col-result"><span class="pv-result ${cls}">${r||'—'}</span></td>
-        <td class="pv-col-comment">${esc(check.comment||'')}</td>
-      </tr>`;
-    }).filter(Boolean).join('');
-
-    if (!rows) return '';
-
-    // Collect photos into the global appendix array (not inline)
-    items.forEach(item => {
-      const key = prefix + '_' + item.id;
-      const check = ci.checks[key] || {};
-      const photos = check.photos || [];
-      photos.forEach(src => {
-        allPhotos.push({ section: label.replace(/^[^\w\s]+\s*/, ''), item: item.label, comment: check.comment || '', src });
-      });
-    });
-
-    return `<div class="pv-section">
-      <div class="pv-section-title">${label}</div>
-      <table class="pv-table">
-        <thead><tr>
-          <th class="pv-col-item">Item</th>
-          <th class="pv-col-result">Result</th>
-          <th class="pv-col-comment">Comment</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
+// ── DIRECT PDF (Phase 4) ─────────────────────────────────────────────────────
+// Deep-clone -> normalize -> sync, then hand an already-normalized copy to the
+// external builder. Text-only headings; no icon() in the PDF for this phase.
+function generateHqsPdf(inspection) {
+  if (!inspection) { showToast('No inspection to generate'); return; }
+  if (typeof pdfMake === 'undefined' || !window.HQSDOC || typeof HQSDOC.buildHqsDocument !== 'function') {
+    showToast('PDF engine not loaded — check pdfmake / build-hqs-doc.js'); return;
   }
-
-  let sections = '';
-
-  // ── FAILED ITEMS SUMMARY (top of report — most important)
-  if (allFails.length) {
-    const failRows = allFails.map(f =>
-      `<tr class="fail-row">
-        <td style="width:22%">${esc(f.area)}</td>
-        <td style="width:40%">${esc(f.label)}</td>
-        <td>${esc(f.comment) || '<em style="color:#94a3b8">No comment</em>'}</td>
-      </tr>`
-    ).join('');
-    sections += `<div class="pv-fails-box">
-      <div class="pv-fails-title">
-        ⚠ Failed Items Requiring Correction
-        <span>${allFails.length} item${allFails.length !== 1 ? 's' : ''} — must be resolved before unit approval</span>
-      </div>
-      <table class="pv-table">
-        <thead><tr><th>Area</th><th>Item</th><th>Comment / Deficiency Detail</th></tr></thead>
-        <tbody>${failRows}</tbody>
-      </table>
-    </div>`;
-  }
-
-  // ── SECTION ORDER: Living Room, Kitchen, Bedrooms, Bathrooms, Other Areas, Building sections
-  sections += buildTable('living_room', ROOM_ITEMS, '🛋 Living Room');
-  sections += buildTable('kitchen', KITCHEN_ITEMS, '🍳 Kitchen');
-
-  (ci.bedrooms || []).forEach((bed, idx) => {
-    sections += buildTable(`bed_${idx}`, BEDROOM_ITEMS,
-      `🛏 Bedroom: ${bed.name || `Bedroom ${idx+1}`}`);
-  });
-
-  ci.baths.forEach((bath, idx) => {
-    sections += buildTable(`bath_${idx}`, BATH_ITEMS,
-      `🚿 Bathroom: ${bath.name || `Bath ${idx+1}`}`);
-  });
-
-  ci.rooms.forEach((room, idx) => {
-    const code = room.code ? `RC ${room.code} — ${ROOM_CODES[room.code]||''}` : 'No Code';
-    const name = room.name || `Area ${idx+1}`;
-    sections += buildTable(`room_${idx}`, ROOM_ITEMS, `🚪 ${name} (${code})`);
-  });
-
-  BUILDING_CHECKLIST.forEach(s => {
-    sections += buildTable(s.id, s.items, `${s.icon} ${s.title}`);
-  });
-
-  // ── AMENITIES (only if any checked)
-  const am = ci.amenities || {};
-  const hasAnyAmenity = AMENITIES.some(g =>
-    g.items.some(item => am[`${g.id}_${item.id}`]) || !!am[`${g.id}_other`]
-  );
-  if (hasAnyAmenity) {
-    let amRows = '';
-    AMENITIES.forEach(group => {
-      const checked = group.items.filter(item => am[`${group.id}_${item.id}`]).map(item => item.label);
-      const other = am[`${group.id}_other`];
-      if (checked.length || other) {
-        amRows += `<tr>
-          <td style="width:22%;font-weight:bold">${group.icon} ${group.title}</td>
-          <td>${checked.join(' &nbsp;·&nbsp; ')}${other ? (checked.length ? ' &nbsp;·&nbsp; ' : '') + '<em>Other: ' + esc(other) + '</em>' : ''}</td>
-        </tr>`;
-      }
-    });
-    sections += `<div class="pv-section">
-      <div class="pv-section-title">⭐ Section C — Special Amenities</div>
-      <table class="pv-table">
-        <thead><tr><th style="width:22%">Area</th><th>Features Observed</th></tr></thead>
-        <tbody>${amRows}</tbody>
-      </table>
-    </div>`;
-  }
-
-  // ── Overall result badge
-  const resultKey = ci.summary.result || 'pending';
-  const badgeCls = resultKey === 'Pass' ? 'pass' : resultKey === 'Fail' ? 'fail' : resultKey === 'Inconclusive' ? 'inc' : 'pending';
-  const badgeLabel = resultKey === 'Pass' ? '✓ Pass' : resultKey === 'Fail' ? '✗ Fail' : resultKey === 'Inconclusive' ? '? Inconclusive' : 'Pending';
-  const inspDate = ci.info.dateInspection || fmtDate(ci.created);
-
-  document.getElementById('print-view').innerHTML = `
-    <div class="pv-header">
-      <div class="pv-header-left">
-        <div class="pv-title">Housing Unit Inspection Report</div>
-        <div class="pv-sub">Based on HUD Housing Quality Standards — Variations may not reflect HUD's official form</div>
-      </div>
-      <div class="pv-header-right">
-        <div class="pv-overall-badge ${badgeCls}">${badgeLabel}</div>
-        <div class="pv-date">Inspected: ${inspDate}</div>
-      </div>
-    </div>
-
-    <div class="pv-meta-wrap">
-      <div class="pv-meta-box">
-        <div class="pv-meta-box-title">Property &amp; Inspection Info</div>
-        <div class="pv-meta-body">
-          <div class="pv-meta-row full"><span class="lbl">Address: </span>${addr}</div>
-          <div class="pv-meta-row"><span class="lbl">Tenant: </span>${ci.info.tenant||'—'}</div>
-          <div class="pv-meta-row"><span class="lbl">Tenant ID: </span>${ci.info.tenantId||'—'}</div>
-          <div class="pv-meta-row"><span class="lbl">Inspector: </span>${ci.info.inspector||'—'}</div>
-          <div class="pv-meta-row"><span class="lbl">PHA: </span>${ci.info.pha||'—'}</div>
-          <div class="pv-meta-row"><span class="lbl">Type: </span>${ci.info.typeInspection||'Initial'}</div>
-          <div class="pv-meta-row"><span class="lbl">Date of Request: </span>${ci.info.dateRequest||'—'}</div>
-          <div class="pv-meta-row"><span class="lbl">Year Built: </span>${ci.info.yearBuilt||'—'}</div>
-          <div class="pv-meta-row"><span class="lbl">Bedrooms: </span>${ci.info.bedrooms||'—'}</div>
-          <div class="pv-meta-row"><span class="lbl">Children &lt;6: </span>${ci.info.children||'0'}</div>
-          <div class="pv-meta-row full"><span class="lbl">Housing Type: </span>${ci.info.housingType||'—'}</div>
-        </div>
-      </div>
-      <div class="pv-meta-box">
-        <div class="pv-meta-box-title">Owner / Property Management</div>
-        <div class="pv-meta-body">
-          <div class="pv-meta-row full"><span class="lbl">Company: </span>${ci.owner.companyName||'—'}</div>
-          <div class="pv-meta-row full"><span class="lbl">Contact: </span>${ci.owner.contactName||'—'}</div>
-          <div class="pv-meta-row"><span class="lbl">Phone: </span>${ci.owner.phone||'—'}</div>
-          <div class="pv-meta-row"><span class="lbl">Email: </span>${ci.owner.email||'—'}</div>
-          <div class="pv-meta-row full"><span class="lbl">Mailing Address: </span>${ci.owner.address||'—'}</div>
-        </div>
-      </div>
-    </div>
-
-    ${sections}
-    <div class="pv-page-footer"></div>
-
-    <!-- ── PAGE: Inspector Notes + Signatures ── -->
-    <div class="pv-notes-sigs-page">
-      <div class="pv-notes-box">
-        <div class="pv-notes-title">Inspector Notes</div>
-        <div class="pv-notes-body">${ci.summary.notes ? esc(ci.summary.notes) : '<span style="color:#94a3b8;font-style:italic">No notes recorded.</span>'}</div>
-      </div>
-
-      <div class="pv-sigs">
-        <div>
-          <div class="pv-sig-line"></div>
-          <div class="pv-sig-label">Inspector Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date</div>
-        </div>
-        <div>
-          <div class="pv-sig-line"></div>
-          <div class="pv-sig-label">Owner / Agent Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date</div>
-        </div>
-      </div>
-
-      <div class="pv-footer">
-        <span>Based on HUD Housing Quality Standards (HUD-52580, 4/2023) — Variations in this report may not reflect HUD's official standards</span>
-        <span>Generated: ${new Date().toLocaleString()} &nbsp;|&nbsp; Housing Unit Inspection Tool v1.0 &nbsp;|&nbsp; Labor Compliance Solutions &nbsp;|&nbsp; https://github.com/robvilla14</span>
-      </div>
-      <div class="pv-page-footer"></div>
-    </div>
-
-    <!-- ── PAGE: Photo Appendix (only if photos exist) ── -->
-    ${allPhotos.length ? `
-    <div class="pv-photo-appendix">
-      <div class="pv-photo-appendix-title">Photo Documentation Appendix &nbsp;·&nbsp; ${addr}${ci.info.tenantId ? ' &nbsp;#' + esc(ci.info.tenantId) : ''} &nbsp;·&nbsp; ${allPhotos.length} photo${allPhotos.length !== 1 ? 's' : ''}</div>
-      <div class="pv-photo-appendix-grid">
-        ${allPhotos.map(p => `
-          <div class="pv-photo-appendix-item">
-            <img src="${p.src}" alt="${esc(p.item)}">
-            <div class="pv-photo-appendix-caption">
-              <div class="cap-section">${esc(p.section)}</div>
-              <div class="cap-item">${esc(p.item)}</div>
-              ${p.comment ? `<div class="cap-comment">${esc(p.comment)}</div>` : ''}
-            </div>
-          </div>`).join('')}
-      </div>
-      <div class="pv-page-footer"></div>
-    </div>` : ''}
-  `;
-
-  document.getElementById('dashboard').classList.remove('active');
-  document.getElementById('inspection').classList.remove('active');
-  document.getElementById('print-view').style.display = 'block';
-
-  // Show one-time instruction before print dialog
-  const printKey = 'hqs_print_tip_shown';
-  const alreadySeen = localStorage.getItem(printKey);
-
-  const doPrint = () => {
-    window.print();
-    setTimeout(() => {
-      document.getElementById('print-view').style.display = 'none';
-      if (_printOrigin === 'form') {
-        document.getElementById('inspection').classList.add('active');
-      } else {
-        _printOrigin = 'dashboard';
-        showDashboard();
-      }
-    }, 500);
-  };
-
-  if (alreadySeen) {
-    doPrint();
-  } else {
-    showModal('Print Settings — One-Time Setup', `
-      <div style="padding:16px 14px 8px">
-        <p style="font-size:13px;line-height:1.6;color:#1e293b;margin:0 0 12px">
-          To remove the browser header (title &amp; URL) and footer (date) from your printed report,
-          uncheck <strong>"Headers and footers"</strong> in the print dialog that opens next.
-        </p>
-        <div style="background:#f1f5f9;border-radius:8px;padding:10px 12px;font-size:11px;color:#475569;line-height:1.7;margin-bottom:14px">
-          <strong>Chrome / Edge:</strong> More settings → uncheck "Headers and footers"<br>
-          <strong>Safari:</strong> Show Details → uncheck "Print headers and footers"
-        </div>
-        <p style="font-size:11px;color:#64748b;margin:0 0 14px">
-          Page numbers will still print — they are added by this report automatically.
-          This message will only appear once.
-        </p>
-        <button onclick="localStorage.setItem('${printKey}','1');closeModal();doPrint();"
-          style="width:100%;padding:13px;background:#f59e0b;color:#0f1923;border:none;border-radius:8px;
-                 font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:0.06em;
-                 text-transform:uppercase;cursor:pointer">
-          Got It — Open Print Dialog
-        </button>
-      </div>`);
-    // expose doPrint globally so the button above can call it
-    window.doPrint = doPrint;
+  try {
+    const normalized = normalizeInspection(JSON.parse(JSON.stringify(inspection)));
+    syncOverallResult(normalized);
+    const result = HQSDOC.buildHqsDocument(normalized);
+    pdfMake.createPdf(result.docDefinition).download(result.filename);
+  } catch (e) {
+    showToast('PDF generation failed');
+    console.error('generateHqsPdf error:', e);
   }
 }
-
-function getAllFails(ci) {
-  const fails = [];
-  const check = (prefix, items, areaLabel) => {
-    items.forEach(item => {
-      const key = prefix + '_' + item.id;
-      const c = ci.checks[key] || {};
-      if (c.result === 'Fail') fails.push({ area: areaLabel, label: item.label, comment: c.comment || '' });
-    });
-  };
-  check('living_room', ROOM_ITEMS, 'Living Room');
-  check('kitchen', KITCHEN_ITEMS, 'Kitchen');
-  (ci.bedrooms || []).forEach((b, i) => check(`bed_${i}`, BEDROOM_ITEMS, b.name || `Bedroom ${i+1}`));
-  ci.baths.forEach((b, i) => check(`bath_${i}`, BATH_ITEMS, b.name || `Bath ${i+1}`));
-  ci.rooms.forEach((r, i) => check(`room_${i}`, ROOM_ITEMS, r.name || `Room ${i+1} (RC ${r.code||'?'})`));
-  BUILDING_CHECKLIST.forEach(s => check(s.id, s.items, s.title));
-  return fails;
+function generateHqsPdfById(id) {
+  const rec = getAll().find(i => i.id === id);
+  if (!rec) { showToast('Inspection not found'); return; }
+  generateHqsPdf(rec);
 }
 
 function renderAmenitiesSection(ci) {
@@ -2191,10 +2121,10 @@ function renderAmenitiesSection(ci) {
 
     return `<div class="amenity-group" id="amgroup_${group.id}">
       <button class="amenity-toggle${isOpen?' open':''}" onclick="toggleAmenityGroup('${group.id}')">
-        <span>${group.icon} ${group.title}</span>
+        <span>${icon(AMENITY_ICON[group.id] || 'amenities')}<span>${group.title}</span></span>
         <span style="display:flex;align-items:center;gap:6px">
           ${countBadge}
-          <span class="toggle-arrow">▶</span>
+          ${icon('forward', 'toggle-arrow')}
         </span>
       </button>
       <div class="amenity-group-body${isOpen?' open':''}" id="ambody_${group.id}">
@@ -2204,11 +2134,7 @@ function renderAmenitiesSection(ci) {
     </div>`;
   }).join('');
 
-  return `<div class="form-card" style="margin-top:12px">
-    <div class="card-header">
-      <h3>⭐ Section C — Special Amenities</h3>
-      <span style="font-size:10px;color:var(--gray);font-family:var(--mono)">Optional — tap to expand</span>
-    </div>
+  return `${secOpen('amenities', `<h3>${icon('amenities')}<span>Section C — Special Amenities</span></h3><span style="font-size:10px;color:var(--gray);font-family:var(--mono)">Optional — tap to expand</span>`)}
     <div style="padding:10px 14px;background:#fffbeb;border-bottom:1px solid var(--border);font-size:11px;color:#92400e;line-height:1.5">
       These items are <strong>not pass/fail</strong>. Check any positive features present. Used to support rent reasonableness determinations.
     </div>
@@ -2297,11 +2223,11 @@ function addPhoto(key, input) {
         const thumbs = photos.map((src, pi) =>
           `<div class="photo-thumb-wrap">
             <img class="photo-thumb" src="${src}" alt="photo">
-            <button class="photo-thumb-del" onclick="removePhoto('${key}',${pi})" title="Remove">✕</button>
+            <button class="photo-thumb-del" onclick="removePhoto('${key}',${pi})" title="Remove" aria-label="Remove photo">${icon('close')}</button>
           </div>`
         ).join('');
         row.innerHTML = thumbs +
-          `<button class="btn-add-photo" onclick="document.getElementById('photoinput_${safeKey}').click()">📷<span>Photo</span></button>
+          `<button class="btn-add-photo" onclick="document.getElementById('photoinput_${safeKey}').click()">${icon('camera')}<span>Photo</span></button>
            <input class="photo-input" type="file" id="photoinput_${safeKey}" accept="image/*" capture="environment" onchange="addPhoto('${key}',this)">`;
       }
     };
@@ -2322,11 +2248,11 @@ function removePhoto(key, idx) {
     const thumbs = photos.map((src, pi) =>
       `<div class="photo-thumb-wrap">
         <img class="photo-thumb" src="${src}" alt="photo">
-        <button class="photo-thumb-del" onclick="removePhoto('${key}',${pi})" title="Remove">✕</button>
+        <button class="photo-thumb-del" onclick="removePhoto('${key}',${pi})" title="Remove" aria-label="Remove photo">${icon('close')}</button>
       </div>`
     ).join('');
     row.innerHTML = thumbs +
-      `<button class="btn-add-photo" onclick="document.getElementById('photoinput_${safeKey}').click()">📷<span>Photo</span></button>
+      `<button class="btn-add-photo" onclick="document.getElementById('photoinput_${safeKey}').click()">${icon('camera')}<span>Photo</span></button>
        <input class="photo-input" type="file" id="photoinput_${safeKey}" accept="image/*" capture="environment" onchange="addPhoto('${key}',this)">`;
   }
 }
@@ -2336,7 +2262,47 @@ function removePhoto(key, idx) {
 // ════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function() {
   renderDashboard();
+  hydrateStaticIcons();
+  if (window.initAppearanceControls) initAppearanceControls();
 });
+
+// ════════════════════════════════════════════════════════
+//  APPEARANCE (Phase 4b) — System / Light / Dark
+// ════════════════════════════════════════════════════════
+(function () {
+  var KEY = 'lcs-theme-mode';
+  var mql = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  function storedMode() {
+    var m = null;
+    try { m = localStorage.getItem(KEY); } catch (e) {}
+    return (m === 'light' || m === 'dark' || m === 'system') ? m : 'system';
+  }
+  function resolve(mode) {
+    if (mode === 'light') return 'light';
+    if (mode === 'dark') return 'dark';
+    return (mql && mql.matches) ? 'dark' : 'light';
+  }
+  function apply(mode) {
+    var r = resolve(mode);
+    document.documentElement.setAttribute('data-theme', r);
+    document.documentElement.style.colorScheme = r;
+    var btns = document.querySelectorAll('.appearance-btn');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].setAttribute('aria-pressed', String(btns[i].getAttribute('data-mode') === mode));
+    }
+  }
+  function onSchemeChange() { if (storedMode() === 'system') apply('system'); }
+  window.setThemeMode = function (mode) {
+    if (mode !== 'light' && mode !== 'dark' && mode !== 'system') mode = 'system';
+    try { localStorage.setItem(KEY, mode); } catch (e) {}
+    apply(mode);
+  };
+  window.initAppearanceControls = function () { apply(storedMode()); };
+  if (mql) {
+    if (mql.addEventListener) mql.addEventListener('change', onSchemeChange);
+    else if (mql.addListener) mql.addListener(onSchemeChange);
+  }
+})();
 
 // ════════════════════════════════════════════════════════
 //  SCROLL TOGGLE
@@ -2351,7 +2317,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const scrolled = window.scrollY || document.documentElement.scrollTop;
     const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
     _atBottom = scrolled > maxScroll - 80;
-    btn.textContent = _atBottom ? '↑' : '↓';
+    btn.innerHTML = _atBottom ? icon('scroll-up') : icon('scroll-down');
     btn.classList.toggle('visible', maxScroll > 100);
   }
   window.scrollToggleAction = function() {
